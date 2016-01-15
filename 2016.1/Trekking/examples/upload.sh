@@ -1,0 +1,1 @@
+arduino --board arduino:avr:mega:cpu=atmega2560 --upload ./Trekking/Trekking.ino
