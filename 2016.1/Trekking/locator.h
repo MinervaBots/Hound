@@ -43,6 +43,8 @@ public:
 	unsigned long getLastUpdateTime() const;
 	float getRobotAngularSpeed() const;
 	float getRobotLinearSpeed() const;
+	float getRightSpeed() const;
+	float getLeftSpeed() const;
 
 	void start();
 	void initMPU();

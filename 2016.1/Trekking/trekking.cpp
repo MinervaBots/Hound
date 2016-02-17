@@ -159,13 +159,15 @@ Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long temp
 }
 
 void Trekking::controlMotors(float v, float w){
+	// v velocity in m/s and w the angle in rad/s
+
 	//Calculating rps
 	float right_desired_vel = (2*v + w*DISTANCE_FROM_RX);///(2*WHEEL_RADIUS);//[RPS]
 	float left_desired_vel = (2*v - w*DISTANCE_FROM_RX);///(2*WHEEL_RADIUS);//[RPS]
 
 	//PID
-	float right_pid_out = floor(right_pid.run(abs(right_desired_vel),locator.right_speed));
-	float left_pid_out = floor(left_pid.run(abs(left_desired_vel),locator.left_speed));
+	float right_pid_out = floor(right_pid.run(abs(right_desired_vel),locator.getRightSpeed()));
+	float left_pid_out = floor(left_pid.run(abs(left_desired_vel),locator.getLeftSpeed()));
 
 	// calculating pwm
 	byte right_pwm = right_pid_out*MAX_MOTOR_PWM/MAX_RPS;
@@ -306,7 +308,7 @@ void Trekking::refinedSearch() {
 	r=right_sonar.getDistance();
 
 	if (c<minD){
-		lighting;
+		lighting();
 		goToNextTarget();
 		return;
 	}

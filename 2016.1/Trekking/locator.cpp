@@ -82,6 +82,12 @@ float Locator::getRobotAngularSpeed() const {
 float Locator::getRobotLinearSpeed() const {
 	return robot_linear_speed;
 }
+float Locator::getRightSpeed() const {
+	return right_speed;
+}
+float Locator::getLeftSpeed() const {
+	return left_speed;
+}
 
 void Locator::readMPU() {
 	// Serial.println("Reading mpu");
