@@ -27,6 +27,9 @@ private:
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
 
+       const float MAX_SONAR_DISTANCE;
+       const float MIN_SONAR_DISTANCE; // [m]
+
 	float desired_linear_velocity;
 	float desired_angular_velocity;
 
