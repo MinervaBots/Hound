@@ -8,7 +8,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	MAX_ANGULAR_VELOCITY(max_angular_velocity),
 
        //Distances for Ultrasound
-       MAX_SONAR_DISTANCE(50),
+       MAX_SONAR_DISTANCE(500),
        MIN_SONAR_DISTANCE(10),
 	
 	//Motors
@@ -317,7 +317,6 @@ void Trekking::refinedSearch() {
 
 	if (c<minD){
 		lighting();
-		goToNextTarget();
 	}
 	else if (c<maxD && l>maxD && r>maxD){
 		controlMotors(V,0);
