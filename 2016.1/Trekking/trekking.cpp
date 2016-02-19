@@ -6,6 +6,10 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	//Velocities
 	MAX_LINEAR_VELOCITY(max_linear_velocity),
 	MAX_ANGULAR_VELOCITY(max_angular_velocity),
+
+       //Distances for Ultrasound
+       MAX_SONAR_DISTANCE(50),
+       MIN_SONAR_DISTANCE(10),
 	
 	//Motors
 	MAX_MOTOR_PWM(130),
@@ -295,6 +299,10 @@ void Trekking::search() {
 }
 
 void Trekking::refinedSearch() {
+       //MAX_SONAR_DISTANCE
+       //MIN_SONAR_DISTANCE
+       // MAX_LINEAR_VELOCITY and angular....
+
 	float maxD,minD;
 	float V,W;
 					//  These constants must be tested and defined. maxD is the maximun distance read 
@@ -310,24 +318,19 @@ void Trekking::refinedSearch() {
 	if (c<minD){
 		lighting();
 		goToNextTarget();
-		return;
 	}
-	if (c<maxD && l>maxD && r>maxD){
+	else if (c<maxD && l>maxD && r>maxD){
 		controlMotors(V,0);
-		return;
 	}
-	if (r<maxD){
+	else if (r<maxD){
 		controlMotors(V,-W);
-		return;
 	}
-	if (l<maxD){
+	else if (l<maxD){
 		controlMotors(V,W);
-		return;
 	}
-	if (c>maxD && l>maxD && r>maxD){
+	else if (c>maxD && l>maxD && r>maxD){
 		controlMotors(V,W);				//  Perhaps it would be best to use data from the gyroscope to
 										// determine wheather to use +W or -W
-		return;
 	}
 }
 
