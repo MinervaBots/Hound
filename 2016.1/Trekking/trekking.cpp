@@ -137,17 +137,140 @@ void Trekking::emergency() {
 	current_command = ' ';
 }
 
+/*----|Public: Test related functions|---------------------------------------*/
+void Trekking::goStraight(bool enable_pid){
+	float v = 1;
+	float w = 0;
+
+	controlMotors(v, w, enable_pid);
+	
+// 	if(!is_tracking) {
+// 		log.debug("TEST", "Go Straight");
+// 		is_tracking = true;
+// 		
+// 		log << DEBUG << "" << log_endl;
+// 		log << "\t" << "t";
+// 	
+// 		log << "\t" << "R_X"; //Robot X
+// 		log << "\t" << "R_Y"; //Robot Y
+// 		
+// 		log << "\t" << "v"; //Lin Velocity
+// 		log << "\t" << "w"; //Ang Velocity
+// 	
+// 		log << log_endl;
+// 	}
+// 	
+// 	log << DEBUG << "" << log_endl;
+// 	log << "\t" << t;
+// 	
+// 	log << "\t" << trekking_position->getX();
+// 	log << "\t" << trekking_position->getY();
+// 	
+// 	log << "\t" << v;
+// 	log << "\t" << w;
+// 	
+// 	log << log_endl;
+}
+
+void Trekking::doCircle(bool enable_pid){
+	controlMotors(1, 1, enable_pid);
+		
+// 	if(!is_tracking) {
+// 		log.debug("TEST", "Go Straight");
+// 		is_tracking = true;
+// 		
+// 		log << DEBUG << "" << log_endl;
+// 		log << "\t" << t;
+// 	
+// 		log << "\t" << "R_X"; //Robot X
+// 		log << "\t" << "R_Y"; //Robot Y
+// 		
+// 		log << "\t" << "v"; //Lin Velocity
+// 		log << "\t" << "w"; //Ang Velocity
+// 	
+// 		log << log_endl;
+// 	}
+// 	
+// 	log << DEBUG << "" << log_endl;
+// 	log << "\t" << t;
+// 	
+// 	log << "\t" << trekking_position->getX();
+// 	log << "\t" << trekking_position->getY();
+// 	
+// 	log << "\t" << v;
+// 	log << "\t" << w;
+// 	
+// 	log << log_endl;
+}
+
+
+void Trekking::goStraightWithControl(bool is_virtual_test, float meters){
+// 	if(!is_tracking) {
+// 		log.debug("TEST", "Go Straight");
+// 		startTimers();
+// 		is_tracking = true;
+// 		
+// 		log << DEBUG << "" << log_endl;
+// 		log << "\t" << t;
+// 		
+// 		log << "\t" << "P_X"; //Planned X
+// 		log << "\t" << "P_Y"; //Planned Y
+// 		
+// 		log << "\t" << "R_X"; //Robot X
+// 		log << "\t" << "R_Y"; //Robot Y
+// 		
+// 		log << "\t" << "v"; //Lin Velocity
+// 		log << "\t" << "w"; //Ang Velocity
+// 	
+// 		log << log_endl;
+// 	
+// 		
+// 	}
+	Position* trekking_position = locator.getLastPosition();
+	float v, w = 0;
+	Position* destination = targets.get(current_target_index);
+	destination->set(meters, 0.0, 0.0);
+	unsigned long t = tracking_regulation_timer.getElapsedTime();
+	Position planned_position = plannedPosition(true, t);
+	Position gap = trekking_position->calculateGap(planned_position);
+// 	trackTrajectory();
+	
+// 	if(is_virtual_test){
+// 		log << DEBUG << "" << log_endl;
+// 		log << "\t" << t;
+// 		
+// 		log << "\t" << planned_position->getX();
+// 		log << "\t" << planned_position->getY();
+// 		
+// 		log << "\t" << trekking_position->getX();
+// 		log << "\t" << trekking_position->getY();
+// 		
+// 		log << "\t" << v;
+// 		log << "\t" << w;
+// 	
+// 		log << log_endl;
+// 	
+// 	}else{
+// 	
+// 		controlMotors(v, w, true);
+// 	}
+}
+
+
+
 
 /*----|Private: Matlab related functions|------------------------------------*/
 Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long tempo){
 	Position* destination = targets.get(current_target_index);
-	Position* trekking_position = locator.getLastPosition();
+// 	Position* trekking_position = locator.getLastPosition();
 	Position planned_position = Position();
 	float t = (float) tempo;
 	t /= 1000; //Mills to sec
 
 	float dirx = 1;
 	float diry = 1;
+	
+	// Verificando a direcao do caminho
 	if (init_position.getX() > destination->getX()){
 		dirx = -1;
 	}
@@ -155,14 +278,33 @@ Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long temp
 		diry = -1;
 	}
 	float planned_distance = desired_linear_velocity * t;
-	planned_position.set(init_position.getX() + planned_distance*cos(init_position.getTheta())*dirx, //x
-						init_position.getY() + planned_distance*sin(init_position.getTheta())*diry, //y
-						init_position.getTheta());// theta
+	
+	float p_x = init_position.getX() + planned_distance*cos(init_position.getTheta())*dirx;
+	float p_y = init_position.getY() + planned_distance*sin(init_position.getTheta())*diry;
+	float p_theta = init_position.getTheta();
+	
+	// A posicao planejada nao pode estar depois da posicao destino
+	// X
+	if (init_position.getX() > destination->getX()){
+		p_x = max(destination->getX(),p_x);
+	}
+	else{
+		p_x = min(destination->getX(),p_x);
+	}
+	// Y	
+	if (init_position.getY() > destination->getY()){
+		p_x = max(destination->getX(),p_y);
+	}
+	else{
+		p_x = min(destination->getX(),p_y);
+	}
+	
+	planned_position.set(p_x, p_y, p_theta);
 
 	return planned_position;
 }
 
-void Trekking::controlMotors(float v, float w){
+void Trekking::controlMotors(float v, float w, bool enable_pid){
 	// v velocity in m/s and w the angle in rad/s
 
 	//Calculating rps
@@ -170,19 +312,30 @@ void Trekking::controlMotors(float v, float w){
 	float left_desired_vel = (2*v - w*DISTANCE_FROM_RX);///(2*WHEEL_RADIUS);//[RPS]
 
 	//PID
-	float right_pid_out = floor(right_pid.run(abs(right_desired_vel),locator.getRightSpeed()));
-	float left_pid_out = floor(left_pid.run(abs(left_desired_vel),locator.getLeftSpeed()));
-
+	float right_vel = 0;
+	float left_vel = 0;
+	if(enable_pid){
+		right_vel = floor(right_pid.run(
+			abs(right_desired_vel), locator.getRightSpeed() ));
+		
+		left_vel = floor(left_pid.run(
+			abs(left_desired_vel), locator.getLeftSpeed() ));
+	}
+	else {
+		right_vel = right_desired_vel;
+		left_vel = left_desired_vel;
+	}
 	// calculating pwm
-	byte right_pwm = right_pid_out*MAX_MOTOR_PWM/MAX_RPS;
-	byte left_pwm = left_pid_out*MAX_MOTOR_PWM/MAX_RPS;
-	bool right_reverse = (right_pid_out < 0);
-	bool left_reverse = (left_pid_out < 0);
+	byte right_pwm = right_vel*MAX_MOTOR_PWM/MAX_RPS;
+	byte left_pwm = left_vel*MAX_MOTOR_PWM/MAX_RPS;
+	
+	bool right_reverse = (right_vel < 0);
+	bool left_reverse = (left_vel < 0);
 
 	if(right_pwm < MIN_MOTOR_PWM && !nearEquals(right_pwm, 0, 5)) {
 		right_pwm = MIN_MOTOR_PWM;
 	}
-	if(left_pwm < MIN_MOTOR_PWM && !nearEquals(right_pwm, 0, 5)) {
+	if(left_pwm < MIN_MOTOR_PWM && !nearEquals(left_pwm, 0, 5)) {
 		left_pwm = MIN_MOTOR_PWM;
 	}
 	
@@ -216,7 +369,6 @@ void Trekking::controlMotors(float v, float w){
 // 	bool left_reverse = false;
 
 	// right_pwm = pidOut;	
-	
 	
 	
 }
@@ -254,7 +406,7 @@ void Trekking::trackTrajectory() {
 	float v = desired_linear_velocity*cos(e3) + k1*e1;
 	float w = desired_angular_velocity + k2*e2 + k3*e3;
 
-	controlMotors(v, w);
+	controlMotors(v, w, true);
 	distance_to_target = trekking_position->distanceFrom(targets.get(current_target_index));
 }
 
@@ -319,16 +471,16 @@ void Trekking::refinedSearch() {
 		lighting();
 	}
 	else if (c<maxD && l>maxD && r>maxD){
-		controlMotors(V,0);
+		controlMotors(V,0,true);
 	}
 	else if (r<maxD){
-		controlMotors(V,-W);
+		controlMotors(V,-W,true);
 	}
 	else if (l<maxD){
-		controlMotors(V,W);
+		controlMotors(V,W,true);
 	}
 	else if (c>maxD && l>maxD && r>maxD){
-		controlMotors(V,W);				//  Perhaps it would be best to use data from the gyroscope to
+		controlMotors(V,W,true);				//  Perhaps it would be best to use data from the gyroscope to
 										// determine wheather to use +W or -W
 	}
 }

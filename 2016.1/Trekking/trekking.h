@@ -23,6 +23,12 @@ public:
 	void update();
 	void emergency();
 	
+	/*----|Test related functions|-------------------------------------------*/
+	void goStraight(bool enable_pid);
+	void doCircle(bool enable_pid);
+	void goStraightWithControl(bool is_virtual_test, float meters);
+	
+	
 private:
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
@@ -107,7 +113,7 @@ private:
 	
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
-	void controlMotors(float v, float w);
+	void controlMotors(float v, float w, bool enable_pid);
 	void trackTrajectory();
 	
 	/*----|Operation modes|--------------------------------------------------*/
