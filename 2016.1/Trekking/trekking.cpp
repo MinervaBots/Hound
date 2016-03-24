@@ -445,6 +445,7 @@ void Trekking::search() {
 	if(distance_to_target < PROXIMITY_RADIUS) {
 	 	tracking_regulation_timer.stop();
 	 	tracking_regulation_timer.reset();
+	 	is_tracking = false;
 	 	log.assert("operation mode", "refined search");
 	 	operation_mode = &Trekking::refinedSearch;
 	}
@@ -454,12 +455,9 @@ void Trekking::refinedSearch() {
        //MAX_SONAR_DISTANCE
        //MIN_SONAR_DISTANCE
        // MAX_LINEAR_VELOCITY and angular....
-
-	float maxD,minD;
-	float V,W;
-					//  These constants must be tested and defined. maxD is the maximun distance read
-					// by the ultrasound sensors and minD the minimum. V and W are the parameters to
-					// control the motors.
+					//  These constants must be tested and defined. We must check if we
+					// would need another MAX_LINEAR/ANGULAR_VELOCITY specially for the refinedSearch
+					// or if we can use these general ones
 
 	sonar_list.read();
 	float c,l,r;
@@ -467,21 +465,21 @@ void Trekking::refinedSearch() {
 	l=left_sonar.getDistance();
 	r=right_sonar.getDistance();
 
-	if (c<minD){
+	if (c<MIN_SONAR_DISTANCE){
 		operation_mode = &Trekking::lighting;
 		controlMotors(0,0,false);
 	}
-	else if (c<maxD && l>maxD && r>maxD){
-		controlMotors(V,0,true);
+	else if (c<MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
+		controlMotors(MAX_LINEAR_VELOCITY,0,true);
 	}
-	else if (r<maxD){
-		controlMotors(V,-W,true);
+	else if (r<MAX_SONAR_DISTANCE){
+		controlMotors(MAX_LINEAR_VELOCITY,-MAX_ANGULAR_VELOCITY,true);
 	}
-	else if (l<maxD){
-		controlMotors(V,W,true);
+	else if (l<MAX_SONAR_DISTANCE){
+		controlMotors(MAX_LINEAR_VELOCITY,MAX_LINEAR_VELOCITY,true);
 	}
-	else if (c>maxD && l>maxD && r>maxD){
-		controlMotors(0,W,true);				//  Perhaps it would be best to use data from the gyroscope to
+	else if (c>MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
+		controlMotors(0,MAX_LINEAR_VELOCITY,true);				//  Perhaps it would be best to use data from the gyroscope to
 										// determine wheather to use +W or -W
 	}
 }
