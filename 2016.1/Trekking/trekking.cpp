@@ -107,25 +107,7 @@ void Trekking::start() {
 }
 
 void Trekking::update() {
-	readInputs();   //Read all the inputs
-	updateTimers(); //Update all the timers
-	current_command = ' ';
-
-	//Read the serial
-	if(command_stream->available()) {
-		current_command = command_stream->read();
-		log.debug("received command", current_command);
-
-	} else {//Read the radio
-	}
-
-	//Stop the robot if the emergency button is pressed or
-	//the stop command was received
-	if(current_command == 'D' || emergency_button) {
-		emergency();
-	}
-
-	debug(); //Debug
+	loopCheck();
 	(this->*operation_mode)(); //Call the current operation
 }
 
@@ -137,125 +119,39 @@ void Trekking::emergency() {
 	current_command = ' ';
 }
 
+
+
 /*----|Public: Test related functions|---------------------------------------*/
 void Trekking::goStraight(bool enable_pid){
-	float v = 1;
-	float w = 0;
-
-	controlMotors(v, w, enable_pid);
-
-// 	if(!is_tracking) {
-// 		log.debug("TEST", "Go Straight");
-// 		is_tracking = true;
-//
-// 		log << DEBUG << "" << log_endl;
-// 		log << "\t" << "t";
-//
-// 		log << "\t" << "R_X"; //Robot X
-// 		log << "\t" << "R_Y"; //Robot Y
-//
-// 		log << "\t" << "v"; //Lin Velocity
-// 		log << "\t" << "w"; //Ang Velocity
-//
-// 		log << log_endl;
-// 	}
-//
-// 	log << DEBUG << "" << log_endl;
-// 	log << "\t" << t;
-//
-// 	log << "\t" << trekking_position->getX();
-// 	log << "\t" << trekking_position->getY();
-//
-// 	log << "\t" << v;
-// 	log << "\t" << w;
-//
-// 	log << log_endl;
+	loopCheck();
+	controlMotors(1, 0, enable_pid);
 }
 
 void Trekking::doCircle(bool enable_pid){
+	loopCheck();
 	controlMotors(1, 1, enable_pid);
-
-// 	if(!is_tracking) {
-// 		log.debug("TEST", "Go Straight");
-// 		is_tracking = true;
-//
-// 		log << DEBUG << "" << log_endl;
-// 		log << "\t" << t;
-//
-// 		log << "\t" << "R_X"; //Robot X
-// 		log << "\t" << "R_Y"; //Robot Y
-//
-// 		log << "\t" << "v"; //Lin Velocity
-// 		log << "\t" << "w"; //Ang Velocity
-//
-// 		log << log_endl;
-// 	}
-//
-// 	log << DEBUG << "" << log_endl;
-// 	log << "\t" << t;
-//
-// 	log << "\t" << trekking_position->getX();
-// 	log << "\t" << trekking_position->getY();
-//
-// 	log << "\t" << v;
-// 	log << "\t" << w;
-//
-// 	log << log_endl;
 }
 
-
-void Trekking::goStraightWithControl(bool is_virtual_test, float meters){
-// 	if(!is_tracking) {
-// 		log.debug("TEST", "Go Straight");
-// 		startTimers();
-// 		is_tracking = true;
-//
-// 		log << DEBUG << "" << log_endl;
-// 		log << "\t" << t;
-//
-// 		log << "\t" << "P_X"; //Planned X
-// 		log << "\t" << "P_Y"; //Planned Y
-//
-// 		log << "\t" << "R_X"; //Robot X
-// 		log << "\t" << "R_Y"; //Robot Y
-//
-// 		log << "\t" << "v"; //Lin Velocity
-// 		log << "\t" << "w"; //Ang Velocity
-//
-// 		log << log_endl;
-//
-//
-// 	}
+void Trekking::goStraightWithControl(float meters){
+	loopCheck();
+	
+	unsigned long t = tracking_regulation_timer.getElapsedTime();
+	log << DEBUG << "" << log_endl;
+	log << "\t" << t;
+	
 	Position* trekking_position = locator.getLastPosition();
-	float v, w = 0;
 	Position* destination = targets.get(current_target_index);
 	destination->set(meters, 0.0, 0.0);
-	unsigned long t = tracking_regulation_timer.getElapsedTime();
+	
 	Position planned_position = plannedPosition(true, t);
 	Position gap = trekking_position->calculateGap(planned_position);
-// 	trackTrajectory();
-
-// 	if(is_virtual_test){
-// 		log << DEBUG << "" << log_endl;
-// 		log << "\t" << t;
-//
-// 		log << "\t" << planned_position->getX();
-// 		log << "\t" << planned_position->getY();
-//
-// 		log << "\t" << trekking_position->getX();
-// 		log << "\t" << trekking_position->getY();
-//
-// 		log << "\t" << v;
-// 		log << "\t" << w;
-//
-// 		log << log_endl;
-//
-// 	}else{
-//
-// 		controlMotors(v, w, true);
-// 	}
+	
+	if(!is_tracking) {
+		log.debug("Search", "starting tracking timer");
+		tracking_regulation_timer.start();
+		is_tracking = true;
+	}
 }
-
 
 
 
@@ -411,6 +307,7 @@ void Trekking::trackTrajectory() {
 }
 
 
+
 /*----|Private: Operations modes|--------------------------------------------*/
 void Trekking::standby() {
 	if(operation_mode_switch == AUTO_MODE) {
@@ -452,12 +349,12 @@ void Trekking::search() {
 }
 
 void Trekking::refinedSearch() {
-       //MAX_SONAR_DISTANCE
-       //MIN_SONAR_DISTANCE
-       // MAX_LINEAR_VELOCITY and angular....
-					//  These constants must be tested and defined. We must check if we
-					// would need another MAX_LINEAR/ANGULAR_VELOCITY specially for the refinedSearch
-					// or if we can use these general ones
+	// MAX_SONAR_DISTANCE
+	// MIN_SONAR_DISTANCE
+	// MAX_LINEAR_VELOCITY and angular....
+	// These constants must be tested and defined. We must check if we
+	// would need another MAX_LINEAR/ANGULAR_VELOCITY specially for the refinedSearch
+	// or if we can use these general ones
 
 	sonar_list.read();
 	float c,l,r;
@@ -479,8 +376,9 @@ void Trekking::refinedSearch() {
 		controlMotors(MAX_LINEAR_VELOCITY,MAX_LINEAR_VELOCITY,true);
 	}
 	else if (c>MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
-		controlMotors(0,MAX_LINEAR_VELOCITY,true);				//  Perhaps it would be best to use data from the gyroscope to
-										// determine wheather to use +W or -W
+		controlMotors(0,MAX_LINEAR_VELOCITY,true);
+		//  Perhaps it would be best to use data from the gyroscope to
+		// determine wheather to use +W or -W
 	}
 }
 
@@ -490,6 +388,7 @@ void Trekking::lighting() {
 		turnOnSirene();
 	}
 }
+
 
 
 /*----|Private: Operations functions|----------------------------------------*/
@@ -568,6 +467,7 @@ void Trekking::turnOffSirene() {
 }
 
 
+
 /*----|Private: Timer functions|---------------------------------------------*/
 void Trekking::startTimers() {
 	encoders_timer.start();
@@ -595,7 +495,30 @@ void Trekking::updateTimers() {
 }
 
 
+
 /*----|Private: Auxiliar functions|------------------------------------------*/
+void Trekking::loopCheck(){
+	readInputs();   //Read all the inputs
+	updateTimers(); //Update all the timers
+	current_command = ' ';
+
+	//Read the serial
+	if(command_stream->available()) {
+		current_command = command_stream->read();
+		log.debug("received command", current_command);
+
+	} else {//Read the radio
+	}
+
+	//Stop the robot if the emergency button is pressed or
+	//the stop command was received
+	if(current_command == 'D' || emergency_button) {
+		emergency();
+	}
+
+	debug(); //Debug
+}
+
 bool Trekking::checkSensors() {return true;}
 
 void Trekking::calibrateAngle() {

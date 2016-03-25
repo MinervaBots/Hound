@@ -26,7 +26,7 @@ public:
 	/*----|Test related functions|-------------------------------------------*/
 	void goStraight(bool enable_pid);
 	void doCircle(bool enable_pid);
-	void goStraightWithControl(bool is_virtual_test, float meters);
+	void goStraightWithControl(float meters);
 	
 	
 private:
@@ -138,6 +138,8 @@ private:
 	void updateTimers();
 
 	/*----|Auxiliar functions|-----------------------------------------------*/
+	// checks inputs and updates timers for each Arduino's outer-loop iteration
+	void loopCheck(); 
 	bool checkSensors(); // returns 1 if all the sensors are working
 	void calibrateAngle();
 	void debug();
