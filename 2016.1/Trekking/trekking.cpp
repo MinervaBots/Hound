@@ -63,8 +63,11 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	mpu_timer.setInterval(READ_MPU_TIME);
 	mpu_timer.start(); //Must read the mpu all the time
 
+
 	encoders_timer.setInterval(READ_ENCODERS_TIME);
 	sirene_timer.setTimeout(LIGHT_DURATION);
+	// nao seria setTimeOut para comecar a fazer a funcao de transferencia?
+	// verificar fazendo diagrama de sequencia envolvendo a chamada da funcao trackTrajectory
 	tracking_regulation_timer.setInterval(READ_ENCODERS_TIME);
 	calibrate_angle_timer.setTimeout(20000);
 	calibrate_angle_timer.start();
