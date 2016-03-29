@@ -3,7 +3,7 @@
 #define ONEINPUT
 
 #ifdef ONEINPUT
-ControlBoard::ControlBoard(r_pin,l_pin):
+ControlBoard::ControlBoard(byte r_pin, byte l_pin):
     driver(r_pin,l_pin)
 {
     setPWM(127,127);

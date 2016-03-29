@@ -5,7 +5,7 @@
 
 #ifdef ONEINPUT
 AutoControlBoard::AutoControlBoard(byte r_pin, byte l_pin):
-    ControlBoard(byte r_pin, byte l_pin)
+    ControlBoard(r_pin, l_pin)
 {
     setCorrection(100,100);
 	setCurveFactor(3);

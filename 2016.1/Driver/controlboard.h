@@ -17,7 +17,7 @@ class ControlBoard
 {
 public:
 	#ifdef ONEINPUT
-	ControlBoard(r_pin,l_pin);
+	ControlBoard(byte r_pin, byte l_pin);
 	#else
 	ControlBoard(byte r_enable,
 		byte r_motor_1, byte r_motor_2,

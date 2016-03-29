@@ -6,7 +6,7 @@
 #ifdef ONEINPUT
 Robot::Robot(byte r_pin, byte l_pin):
 	SensorBoard(),
-	AutoControlBoard(byte r_pin, byte l_pin)
+	AutoControlBoard(r_pin, l_pin)
 {
 }
 #else
