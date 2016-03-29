@@ -1,15 +1,28 @@
 #include "autocontrolboard.h"
 
-AutoControlBoard::AutoControlBoard(byte r_enable, 
+#define ONEINPUT
+
+
+#ifdef ONEINPUT
+AutoControlBoard::AutoControlBoard(byte r_pin, byte l_pin):
+    ControlBoard(byte r_pin, byte l_pin)
+{
+    setCorrection(100,100);
+	setCurveFactor(3);
+	setSpeed(100);
+}
+
+#else
+AutoControlBoard::AutoControlBoard(byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
 		byte l_enable,
 		byte l_motor_1, byte l_motor_2,
-		
+
 		byte r_vcc_ref, byte r_gnd_ref,
 		byte l_vcc_ref, byte l_gnd_ref):
 
-	ControlBoard(r_enable, 
+	ControlBoard(r_enable,
 		r_motor_1, r_motor_2,
 
 		l_enable,
@@ -22,52 +35,54 @@ AutoControlBoard::AutoControlBoard(byte r_enable,
 	setCurveFactor(3);
 	setSpeed(100);
 }
+#endif // ONEINPUT
+
 
 //Automatic control
 void AutoControlBoard::moveForward()
 {
-	driver.r_motor.setPWM(r_pwm*r_correction*speed,0);
-	driver.l_motor.setPWM(l_pwm*l_correction*speed,0);
+	setRPWM(r_pwm*r_correction*speed);
+	setLPWM(l_pwm*l_correction*speed);
 }
 void AutoControlBoard::moveForwardRight()
 {
-	driver.r_motor.setPWM(r_pwm*r_correction*speed/curve_factor,0);
-	driver.l_motor.setPWM(l_pwm*l_correction*speed,0);
+	setRPWM(r_pwm*r_correction*speed/curve_factor);
+	setLPWM(l_pwm*l_correction*speed);
 }
 void AutoControlBoard::moveForwardLeft()
 {
-	driver.r_motor.setPWM(r_pwm*r_correction*speed,0);
-	driver.l_motor.setPWM(l_pwm*l_correction*speed/curve_factor,0);
+	setRPWM(r_pwm*r_correction*speed);
+	setLPWM(l_pwm*l_correction*speed/curve_factor);
 }
 
 void AutoControlBoard::moveBackwards()
 {
-	driver.r_motor.setPWM(0, r_pwm*r_correction*speed);
-	driver.l_motor.setPWM(0, l_pwm*l_correction*speed);
+	setRPWM(r_pwm*r_correction*speed, true);
+	setLPWM(l_pwm*l_correction*speed, true);
 }
 
 void AutoControlBoard::moveBackwardsRight()
 {
-	driver.r_motor.setPWM(0, r_pwm*r_correction*speed/curve_factor);
-	driver.l_motor.setPWM(0, l_pwm*l_correction*speed);
+	setRPWM(r_pwm*r_correction*speed/curve_factor, true);
+	setLPWM(l_pwm*l_correction*speed,true);
 }
 
 void AutoControlBoard::moveBackwardsLeft()
 {
-	driver.r_motor.setPWM(0, r_pwm*r_correction*speed);
-	driver.l_motor.setPWM(0, l_pwm*l_correction*speed/curve_factor);
+	setRPWM(r_pwm*r_correction*speed, false);
+	setLPWM(l_pwm*l_correction*speed/curve_factor, false);
 }
 
 void AutoControlBoard::rotateClockwise()
 {
-	driver.r_motor.setPWM(0,r_pwm*r_correction*speed);
-	driver.l_motor.setPWM(l_pwm*l_correction*speed,0);
+	setRPWM(r_pwm*r_correction*speed, true);
+	setLPWM(l_pwm*l_correction*speed, false);
 }
 
 void AutoControlBoard::rotateAntiClockwise()
 {
-	driver.r_motor.setPWM(r_pwm*r_correction*speed,0);
-	driver.l_motor.setPWM(0,l_pwm*l_correction*speed);
+	setRPWM(r_pwm*r_correction*speed, false);
+	setLPWM(l_pwm*l_correction*speed, true);
 }
 
 //Correction
@@ -85,7 +100,7 @@ void AutoControlBoard::setCorrection(unsigned int r_correction, unsigned int l_c
 {
 	/*
 	 * The correction is applied to each motor individually.
-	 * It is used when the motors have different speeds using 
+	 * It is used when the motors have different speeds using
 	 * the same pwm
 	 */
 	setRCorrection(r_correction);

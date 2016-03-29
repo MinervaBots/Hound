@@ -1,3 +1,5 @@
+#define ONEINPUT
+
 /*
 	Buttons and switches
 */
@@ -11,6 +13,11 @@ const bool AUTO_MODE = 1;
 /*
 	Motors
 */
+#ifdef ONEINPUT
+const byte R_MOTOR_PIN = 10;
+const byte L_MOTOR_PIN = 11;
+
+#else
 const byte R_ENABLE_PIN = 255;
 const byte R_MOTOR_1_PIN = 3;
 const byte R_MOTOR_2_PIN = 4;
@@ -18,6 +25,7 @@ const byte R_MOTOR_2_PIN = 4;
 const byte L_ENABLE_PIN = 255;
 const byte L_MOTOR_1_PIN = 10;
 const byte L_MOTOR_2_PIN = 11;
+#endif // ONEINPUT
 
 /*
 	Sonars

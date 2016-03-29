@@ -2,7 +2,7 @@
 	controlboard.h - class to control 2 DC motors. In a next version it will
 	be updated to control N DC motors.
 
-	ControlBoard makes it easy to control motors. 
+	ControlBoard makes it easy to control motors.
 
 */
 
@@ -11,17 +11,23 @@
 
 #include "duodriver.h"
 
+#define ONEINPUT
+
 class ControlBoard
 {
 public:
-	ControlBoard(byte r_enable, 
+	#ifdef ONEINPUT
+	ControlBoard(r_pin,l_pin);
+	#else
+	ControlBoard(byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
 		byte l_enable,
 		byte l_motor_1, byte l_motor_2,
-		
+
 		byte r_vcc_ref=UNUSED, byte r_gnd_ref=UNUSED,
 		byte l_vcc_ref=UNUSED, byte l_gnd_ref=UNUSED);
+	#endif // ONEINPUT
 
 
 	virtual void setRPWM(byte pwm, bool reverse=false);

@@ -13,17 +13,24 @@
 
 #include "controlboard.h"
 
+#define ONEINPUT
+
 class AutoControlBoard: public ControlBoard
 {
 public:
-	AutoControlBoard(byte r_enable, 
+    #ifdef ONEINPUT
+    AutoControlBoard(byte r_pin, byte l_pin);
+    #else
+    AutoControlBoard(byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
 		byte l_enable,
 		byte l_motor_1, byte l_motor_2,
-		
+
 		byte r_vcc_ref=UNUSED, byte r_gnd_ref=UNUSED,
 		byte l_vcc_ref=UNUSED, byte l_gnd_ref=UNUSED);
+    #endif // ONEINPUT
+
 
 	//Automatic control
 	virtual void moveForward();
@@ -41,7 +48,7 @@ public:
 	virtual void setRCorrection(unsigned int correction);
 	virtual void setLCorrection(unsigned int correction);
 	virtual void setCorrection(unsigned int r_correction, unsigned int l_correction);
-	
+
 	virtual void setSpeed(unsigned int speed);
 	virtual void setCurveFactor(byte factor);
 

@@ -1,6 +1,7 @@
 #include "oneinputdriver.h"
 
-OneInputDriver::OneInputDriver(){
+OneInputDriver::OneInputDriver(byte pin){
+    input = pin;
 	setMinPWM(0);
 	setMaxPWM(255);
 	setStopPWM(127);
@@ -21,4 +22,8 @@ void OneInputDriver::setPWM(byte pwm){
 	DriverInterface::setPWM(pwm);
 	//Write the valid pwm
 	analogWrite(input, this->pwm);
+}
+
+void OneInputDriver::stop(){
+    setPWM(pwm_stop);
 }
