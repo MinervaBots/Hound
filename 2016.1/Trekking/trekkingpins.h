@@ -3,7 +3,7 @@
 */
 const byte INIT_BUTTON_PIN = 3;
 const byte EMERGENCY_BUTTON_PIN  = 2;
-const byte OPERATION_MODE_SWITCH_PIN = A3; \\ Não está atualizado!
+const byte OPERATION_MODE_SWITCH_PIN = A3; // Não está atualizado!
 
 const bool MANUAL_MODE = 0;
 const bool AUTO_MODE = 1;

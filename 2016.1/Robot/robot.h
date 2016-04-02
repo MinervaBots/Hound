@@ -17,6 +17,9 @@ public:
 		byte r_vcc_ref=UNUSED, byte r_gnd_ref=UNUSED,
 		byte l_vcc_ref=UNUSED, byte l_gnd_ref=UNUSED);
 
+	Robot(byte left_motor, byte right_motor);
+
+
 	void useCommand(char command);
 };
 

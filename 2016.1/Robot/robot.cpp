@@ -1,5 +1,7 @@
 #include "robot.h"
 
+
+// This constructor was designed to be used with the Duo-Driver (China)
 Robot::Robot(byte r_enable, 
 		byte r_motor_1, byte r_motor_2,
 
@@ -13,9 +15,16 @@ Robot::Robot(byte r_enable,
 	AutoControlBoard(r_enable, r_motor_1, r_motor_2,
 		l_enable, l_motor_1, l_motor_2,
 		r_vcc_ref, r_gnd_ref,
-		l_vcc_ref, l_gnd_ref)
-{
+		l_vcc_ref, l_gnd_ref){
 }
+
+// This constructor was designed to be used with the Duo-Driver (China)
+// Robot::Robot(byte left_motor, byte right_motor):
+// 	SensorBoard(),
+// 	AutoControlBoard(left_motor, right_motor){
+// }
+
+
 
 void Robot::useCommand(char command)
 {

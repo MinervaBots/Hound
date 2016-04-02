@@ -311,14 +311,6 @@ void Trekking::trackTrajectory() {
 
 
 void Trekking::regulateControl() {
-	if(linear){
-		desired_linear_velocity = MAX_LINEAR_VELOCITY;
-		desired_angular_velocity = 0;
-	}else{
-		desired_linear_velocity = 0;
-		desired_angular_velocity = MAX_ANGULAR_VELOCITY;
-	}
-
 	//constants to handle errors
 	const int k_rho = 1;
 	const int k_gamma = 3;
@@ -328,16 +320,17 @@ void Trekking::regulateControl() {
 	// getting configurations (final/desired and current/real)
 	Position* q_real = locator.getLastPosition(); //real robot position
 	unsigned long t = tracking_regulation_timer.getElapsedTime();
-	Position gap = q_real->calculateGap(targets.get(current_target_index));
+	Position gap = q_real->calculateGap(*targets.get(current_target_index));
 
 	//Angular transformation
-	float rho = (gap.getX()^2 + gap.getY()^2)^(0.5);
-	float gamma = 0; // atan2(gap.getY(), gap.getX()) - q_real->getTheta() ?????????????????
+
+	float rho = sqrt( pow(gap.getX(),2) + pow(gap.getY(),2) );
+	float gamma = atan2(gap.getY(), gap.getX()) - q_real->getTheta();
 	float delta = -gamma - q_real->getTheta();
 
 	//Error Gain and v e w definition
-	v = (k_rho * rho) * cos(gamma);
-	w = (k_delta * delta + gamma) * (k_gamma * sin(gamma) * cos(gamma)/gamma);
+	float v = (k_rho * rho) * cos(gamma);
+	float w = (k_delta * delta + gamma) * (k_gamma * sin(gamma) * cos(gamma)/gamma);
 
 	controlMotors(v, w, true);
 	distance_to_target = q_real->distanceFrom(targets.get(current_target_index));
