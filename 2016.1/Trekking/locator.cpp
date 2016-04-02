@@ -50,7 +50,6 @@ void Locator::start() {
 	encoder_list.start();
 	
 }
-
 	//getters
 //const SimpleEncoder& Locator::getBackLeftEncoder() const {
 //	return back_left_encoder;

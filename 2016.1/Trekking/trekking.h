@@ -115,6 +115,7 @@ private:
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
 	void controlMotors(float v, float w, bool enable_pid);
 	void trackTrajectory();
+	void regulateControl();
 	
 	/*----|Operation modes|--------------------------------------------------*/
 	void standby();
