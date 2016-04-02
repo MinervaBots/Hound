@@ -2,6 +2,10 @@
 #include "trekkingpins.h"
 
 #define ONEINPUT
+/* In order to use the driver with two control signals, comment the line above
+in this file, as well as duodriver.h. Don't forget to adjust
+the pins! */
+
 
 /*----|Public|---------------------------------------------------------------*/
 Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
@@ -17,6 +21,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	MAX_MOTOR_PWM(130),
 	MIN_MOTOR_PWM(100),
 	MAX_RPS(3000),
+
 	#ifdef ONEINPUT
 	robot(R_MOTOR_PIN,L_MOTOR_PIN),
 	#else

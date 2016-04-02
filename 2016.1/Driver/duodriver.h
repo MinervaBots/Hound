@@ -14,14 +14,11 @@
 #endif // ONEINPUT
 
 
-
-
 class DuoDriver
 {
 
 public:
-	#ifndef ONEINPUT
-	DuoDriver(
+    DuoDriver(
 		byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
@@ -31,16 +28,16 @@ public:
 		byte r_vcc_ref=UNUSED, byte r_gnd_ref=UNUSED,
 		byte l_vcc_ref=UNUSED, byte l_gnd_ref=UNUSED);
 
+    DuoDriver(byte r_pin, byte l_pin);
+
+	#ifndef ONEINPUT
 	TwoInputsDriver	l_motor, r_motor;
-	#endif // ONEINPUT
-
-	#ifdef ONEINPUT
-	DuoDriver(byte r_pin, byte l_pin);
-
+	#else
 	OneInputDriver l_motor, r_motor;
 	#endif // ONEINPUT
 
 	void stop();
+    bool oneInput;
 };
 
 #endif

@@ -1,9 +1,6 @@
 #include "autocontrolboard.h"
 
-#define ONEINPUT
 
-
-#ifdef ONEINPUT
 AutoControlBoard::AutoControlBoard(byte r_pin, byte l_pin):
     ControlBoard(r_pin, l_pin)
 {
@@ -12,7 +9,6 @@ AutoControlBoard::AutoControlBoard(byte r_pin, byte l_pin):
 	setSpeed(100);
 }
 
-#else
 AutoControlBoard::AutoControlBoard(byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
@@ -35,7 +31,6 @@ AutoControlBoard::AutoControlBoard(byte r_enable,
 	setCurveFactor(3);
 	setSpeed(100);
 }
-#endif // ONEINPUT
 
 
 //Automatic control

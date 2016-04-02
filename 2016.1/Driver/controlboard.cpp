@@ -1,8 +1,6 @@
 #include "controlboard.h"
 
-#define ONEINPUT
 
-#ifdef ONEINPUT
 ControlBoard::ControlBoard(byte r_pin, byte l_pin):
     driver(r_pin,l_pin)
 {
@@ -10,29 +8,6 @@ ControlBoard::ControlBoard(byte r_pin, byte l_pin):
 	setMinPWM(0,0);
 }
 
-void ControlBoard::setRPWM(byte pwm, bool reverse)
-{
-	if(!reverse)
-	{
-		r_pwm = 127+(pwm/2);
-	} else {
-	    r_pwm = 127-(pwm/2);
-	}
-	driver.r_motor.setPWM(r_pwm);
-}
-
-void ControlBoard::setLPWM(byte pwm, bool reverse)
-{
-	if(!reverse)
-	{
-		l_pwm = 127+(pwm/2);
-	} else {
-		l_pwm = 127-(pwm/2);
-	}
-	driver.l_motor.setPWM(pwm);
-}
-
-#else
 ControlBoard::ControlBoard(byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
@@ -53,27 +28,45 @@ ControlBoard::ControlBoard(byte r_enable,
 
 void ControlBoard::setRPWM(byte pwm, bool reverse)
 {
-	if(!reverse)
-	{
-		driver.r_motor.setPWM(pwm, 0);
+	if (driver.oneInput){
+        if(!reverse)
+        {
+            r_pwm = 127+(pwm/2);
+        } else {
+            r_pwm = 127-(pwm/2);
+        }
+        driver.r_motor.setPWM(r_pwm);
 	} else {
-		driver.r_motor.setPWM(0, pwm);
+	    if(!reverse)
+        {
+            driver.r_motor.setPWM(pwm, 0);
+        } else {
+            driver.r_motor.setPWM(0, pwm);
+        }
+        r_pwm = pwm;
 	}
-	r_pwm = pwm;
 }
 
 void ControlBoard::setLPWM(byte pwm, bool reverse)
 {
-	if(!reverse)
-	{
-		driver.l_motor.setPWM(pwm, 0);
-	} else {
-		driver.l_motor.setPWM(0, pwm);
-	}
-	l_pwm = pwm;
+	if (driver.oneInput) {
+        if(!reverse)
+        {
+            l_pwm = 127+(pwm/2);
+        } else {
+            l_pwm = 127-(pwm/2);
+        }
+        driver.l_motor.setPWM(pwm);
+    } else {
+        if(!reverse)
+        {
+            driver.l_motor.setPWM(pwm, 0);
+        } else {
+            driver.l_motor.setPWM(0, pwm);
+        }
+        l_pwm = pwm;
+    }
 }
-#endif // ONEINPUT
-
 
 void ControlBoard::stop()
 {

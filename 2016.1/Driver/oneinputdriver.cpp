@@ -1,6 +1,6 @@
 #include "oneinputdriver.h"
 
-OneInputDriver::OneInputDriver(byte pin){
+OneInputDriver::OneInputDriver(byte pin, byte extra1, byte extra2, byte extra3, byte extra4) {
     input = pin;
 	setMinPWM(0);
 	setMaxPWM(255);
@@ -17,7 +17,7 @@ void OneInputDriver::moveBackwards(byte pwm){
 	setPWM(correct_pwm);
 }
 
-void OneInputDriver::setPWM(byte pwm){
+void OneInputDriver::setPWM(byte pwm, byte extra){
 	//Change this.pwm
 	DriverInterface::setPWM(pwm);
 	//Write the valid pwm

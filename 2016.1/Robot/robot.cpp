@@ -1,15 +1,13 @@
 #include "robot.h"
 
-#define ONEINPUT
 
 
-#ifdef ONEINPUT
 Robot::Robot(byte r_pin, byte l_pin):
 	SensorBoard(),
 	AutoControlBoard(r_pin, l_pin)
 {
 }
-#else
+
 Robot::Robot(byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
@@ -26,7 +24,7 @@ Robot::Robot(byte r_enable,
 		l_vcc_ref, l_gnd_ref)
 {
 }
-#endif // ONEINPUT
+
 
 void Robot::useCommand(char command)
 {

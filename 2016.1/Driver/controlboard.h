@@ -11,14 +11,12 @@
 
 #include "duodriver.h"
 
-#define ONEINPUT
 
 class ControlBoard
 {
 public:
-	#ifdef ONEINPUT
 	ControlBoard(byte r_pin, byte l_pin);
-	#else
+
 	ControlBoard(byte r_enable,
 		byte r_motor_1, byte r_motor_2,
 
@@ -27,7 +25,7 @@ public:
 
 		byte r_vcc_ref=UNUSED, byte r_gnd_ref=UNUSED,
 		byte l_vcc_ref=UNUSED, byte l_gnd_ref=UNUSED);
-	#endif // ONEINPUT
+
 
 
 	virtual void setRPWM(byte pwm, bool reverse=false);
