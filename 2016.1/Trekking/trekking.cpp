@@ -1,6 +1,12 @@
 #include "trekking.h"
 #include "trekkingpins.h"
 
+#define ONEINPUT
+/* In order to use the driver with two control signals, comment the line above
+in this file, as well as duodriver.h. Don't forget to adjust
+the pins! */
+
+
 /*----|Public|---------------------------------------------------------------*/
 Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	//Velocities
@@ -15,8 +21,13 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	MAX_MOTOR_PWM(130),
 	MIN_MOTOR_PWM(100),
 	MAX_RPS(3000),
+
+	#ifdef ONEINPUT
+	robot(R_MOTOR_PIN,L_MOTOR_PIN),
+	#else
 	robot(R_ENABLE_PIN,R_MOTOR_1_PIN,R_MOTOR_2_PIN,
 		  L_ENABLE_PIN,L_MOTOR_1_PIN,L_MOTOR_2_PIN),
+	#endif // ONEINPUT
 
 	COMMAND_BAUD_RATE(9600),
 	LOG_BAUD_RATE(9600),
@@ -137,18 +148,18 @@ void Trekking::doCircle(bool enable_pid){
 
 void Trekking::goStraightWithControl(float meters){
 	loopCheck();
-	
+
 	unsigned long t = tracking_regulation_timer.getElapsedTime();
 	log << DEBUG << "" << log_endl;
 	log << "\t" << t;
-	
+
 	Position* trekking_position = locator.getLastPosition();
 	Position* destination = targets.get(current_target_index);
 	destination->set(meters, 0.0, 0.0);
-	
+
 	Position planned_position = plannedPosition(true, t);
 	Position gap = trekking_position->calculateGap(planned_position);
-	
+
 	if(!is_tracking) {
 		log.debug("Search", "starting tracking timer");
 		tracking_regulation_timer.start();
@@ -398,16 +409,16 @@ void Trekking::refinedSearch() {
 		controlMotors(0,0,false);
 	}
 	else if (c<MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY,0,true);
+		controlMotors(MAX_LINEAR_VELOCITY,0,false);
 	}
 	else if (r<MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY,-MAX_ANGULAR_VELOCITY,true);
+		controlMotors(MAX_LINEAR_VELOCITY,-MAX_ANGULAR_VELOCITY,false);
 	}
 	else if (l<MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY,MAX_LINEAR_VELOCITY,true);
+		controlMotors(MAX_LINEAR_VELOCITY,MAX_LINEAR_VELOCITY,false);
 	}
 	else if (c>MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
-		controlMotors(0,MAX_LINEAR_VELOCITY,true);
+		controlMotors(0,MAX_LINEAR_VELOCITY,false);
 		//  Perhaps it would be best to use data from the gyroscope to
 		// determine wheather to use +W or -W
 	}
