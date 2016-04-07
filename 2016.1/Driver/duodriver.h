@@ -5,39 +5,33 @@
 #ifndef DUODRIVER_H
 #define DUORDRIVER_H
 
-#define ONEINPUT
-
-#ifdef ONEINPUT
-#include "oneinputdriver.h"
-#else
-#include "twoinputsdriver.h"
-#endif // ONEINPUT
+#include "RoboClaw.h"
+#include "BMSerial.h"
 
 
 class DuoDriver
 {
 
 public:
-    DuoDriver(
-		byte r_enable,
-		byte r_motor_1, byte r_motor_2,
-
-		byte l_enable,
-		byte l_motor_1, byte l_motor_2,
-
-		byte r_vcc_ref=UNUSED, byte r_gnd_ref=UNUSED,
-		byte l_vcc_ref=UNUSED, byte l_gnd_ref=UNUSED);
-
-    DuoDriver(byte r_pin, byte l_pin);
-
-	#ifndef ONEINPUT
-	TwoInputsDriver	l_motor, r_motor;
-	#else
-	OneInputDriver l_motor, r_motor;
-	#endif // ONEINPUT
-
+    DuoDriver(byte tx_pin, byte rx_pin, int timeOut, int address);  // I am not sure the address is necessarily of the type int
+	void moveForward(byte percentage);
+	void moveBackwards(byte percentage);
+	void setMinPWM(byte pwm);
+	void setMaxPWM(byte pwm);
+	void setRPWM(byte pwm, bool reverse = false);
+	void setLPWM(byte pwm, bool reverse = false);
+	void setStopPWM(byte pwm);
 	void stop();
-    bool oneInput;
+
+	RoboClaw roboclaw;
+
+protected:
+    int input;
+    byte rpwm;
+    byte lpwm;
+    byte pwm_min;
+    byte pwm_max;
+    byte pwm_stop;
 };
 
 #endif

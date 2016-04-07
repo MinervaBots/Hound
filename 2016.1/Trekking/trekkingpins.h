@@ -12,17 +12,10 @@ const bool AUTO_MODE = 1;
 	Motors
 */
 // Driver with Sabertooth Style
-const byte R_MOTOR_PIN = 10;
-const byte L_MOTOR_PIN = 11;
-
-// Driver with two pins per motor
-const byte R_ENABLE_PIN = 255;
-const byte R_MOTOR_1_PIN = 3;
-const byte R_MOTOR_2_PIN = 4;
-
-const byte L_ENABLE_PIN = 255;
-const byte L_MOTOR_1_PIN = 10;
-const byte L_MOTOR_2_PIN = 11;      // We're not using when ONEINPUT is defined
+const byte RX_MOTOR_PIN = 10;
+const byte TX_MOTOR_PIN = 11;
+const int ROBOCLAW_ADDRESS = 0x80;
+const int ROBOCLAW_TIMEOUT = 10000;
 
 
 /*

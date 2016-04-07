@@ -1,37 +1,13 @@
 #include "autocontrolboard.h"
 
 
-AutoControlBoard::AutoControlBoard(byte r_pin, byte l_pin):
-    ControlBoard(r_pin, l_pin)
+AutoControlBoard::AutoControlBoard(byte tx_pin, byte rx_pin, int timeOut, int address):
+    ControlBoard(tx_pin, rx_pin, timeOut, address)
 {
     setCorrection(100,100);
 	setCurveFactor(3);
 	setSpeed(100);
 }
-
-AutoControlBoard::AutoControlBoard(byte r_enable,
-		byte r_motor_1, byte r_motor_2,
-
-		byte l_enable,
-		byte l_motor_1, byte l_motor_2,
-
-		byte r_vcc_ref, byte r_gnd_ref,
-		byte l_vcc_ref, byte l_gnd_ref):
-
-	ControlBoard(r_enable,
-		r_motor_1, r_motor_2,
-
-		l_enable,
-		l_motor_1, l_motor_2,
-
-		r_vcc_ref, r_gnd_ref,
-		l_vcc_ref, l_gnd_ref)
-{
-	setCorrection(100,100);
-	setCurveFactor(3);
-	setSpeed(100);
-}
-
 
 //Automatic control
 void AutoControlBoard::moveForward()
@@ -64,8 +40,8 @@ void AutoControlBoard::moveBackwardsRight()
 
 void AutoControlBoard::moveBackwardsLeft()
 {
-	setRPWM(r_pwm*r_correction*speed, false);
-	setLPWM(l_pwm*l_correction*speed/curve_factor, false);
+	setRPWM(r_pwm*r_correction*speed, true);
+	setLPWM(l_pwm*l_correction*speed/curve_factor, true);
 }
 
 void AutoControlBoard::rotateClockwise()

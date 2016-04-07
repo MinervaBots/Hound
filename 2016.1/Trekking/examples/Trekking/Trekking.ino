@@ -27,6 +27,9 @@
 #include <inv_mpu_dmp_motion_driver.h>
 #include <EEPROM.h>
 
+#include "RoboClaw.h"
+#include "BMSerial.h"
+
 float max_linear_vel = 2.0;
 float max_angular_vel = 2.0;
 
@@ -44,6 +47,7 @@ void setup() {
 	Serial.begin(9600);
 	Serial1.begin(9600);
 	Serial2.begin(57600);
+  trekking.robot.driver.roboclaw.begin(38400);
 	
 	Wire.begin();
 	trekking.addTarget(cone_1);

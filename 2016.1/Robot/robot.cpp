@@ -1,26 +1,10 @@
 #include "robot.h"
 
-// This constructor was designed to be used with the RoboClaw Driver
-Robot::Robot(byte r_pin, byte l_pin):
+
+Robot::Robot(byte tx_pin, byte rx_pin, int timeOut, int address):
 	SensorBoard(),
-	AutoControlBoard(r_pin, l_pin)
+	AutoControlBoard(tx_pin, rx_pin, timeOut, address)
 {
-}
-// This constructor was designed to be used with the Duo-Driver (China)
-Robot::Robot(byte r_enable,
-		byte r_motor_1, byte r_motor_2,
-
-		byte l_enable,
-		byte l_motor_1, byte l_motor_2,
-
-		byte r_vcc_ref, byte r_gnd_ref,
-		byte l_vcc_ref, byte l_gnd_ref):
-
-	SensorBoard(),
-	AutoControlBoard(r_enable, r_motor_1, r_motor_2,
-		l_enable, l_motor_1, l_motor_2,
-		r_vcc_ref, r_gnd_ref,
-		l_vcc_ref, l_gnd_ref){
 }
 
 void Robot::useCommand(char command)

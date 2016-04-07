@@ -1,30 +1,73 @@
 #include "duodriver.h"
 
-DuoDriver::DuoDriver(
-		byte r_enable,
-		byte r_motor_1, byte r_motor_2,
-
-		byte l_enable,
-		byte l_motor_1, byte l_motor_2,
-
-		byte r_vcc_ref, byte r_gnd_ref,
-		byte l_vcc_ref, byte l_gnd_ref):
-
-	r_motor(r_enable,r_motor_1,r_motor_2,r_vcc_ref,r_gnd_ref),
-	l_motor(l_enable,l_motor_1,l_motor_2,l_vcc_ref,l_gnd_ref)
+DuoDriver::DuoDriver(byte tx_pin, byte rx_pin, int timeOut, int address):
+    roboclaw(rx_pin, tx_pin, timeOut)
 {
-    oneInput = false;
+    input = address;
+    setStopPWM(64);
+    setMinPWM(0);
+    setMaxPWM(255);
 }
 
-DuoDriver::DuoDriver(byte r_pin, byte l_pin):
-    r_motor(r_pin),
-    l_motor(l_pin)
+void DuoDriver::moveForward(byte percentage)
 {
-    oneInput = true;
+    pwm = map(percentage,0,100,0,128);
+    roboclaw.ForwardM1(input,pwm);
+    roboclaw.ForwardM2(input,pwm);
+}
+
+void DuoDriver::moveBackwards(byte percentage)
+{
+    pwm = map(percentage,0,100,0,128);
+    roboclaw.BackwardM1(input,pwm);
+    roboclaw.BackwardM2(input,pwm);
+}
+
+void DuoDriver::setMinPWM(byte pwm):
+{
+    pwm_min = pwm;
+
+    if(rpwm < pwm_min){
+        rpwm = pwm_min;
+    }
+    if(lpwm < pwm_min){
+        lpwm = pwm_min;
+    }
+}
+
+DuoDriver::setMaxPWM(byte pwm)
+{
+    pwm_max = pwm;
+
+    if(rpwm > pwm_max){
+        rpwm = pwm_max;
+    }
+    if(lpwm > pwm_max){
+        lpwm = pwm_max;
+    }
+}
+
+void setRPWM(byte pwm, bool reverse)
+{
+    if (reverse) rpwm = map(pwm,0,255,64,0);
+    else rpwm = map(pwm,0,255,64,128);
+    roboclaw.ForwardBackwardM1(input,rpwm);
+}
+
+void setLPWM(byte pwm, bool reverse)
+{
+    if (reverse) lpwm = map(pwm,0,255,64,0);
+    else lpwm = map(pwm,0,255,64,128);
+    roboclaw.ForwardBackwardM2(input,lpwm);
+}
+
+void setStopPWM(byte pwm)
+{
+    pwm_stop = pwm;
 }
 
 void DuoDriver::stop()
 {
-	r_motor.stop();
-	l_motor.stop();
+	roboclaw.ForwardBackwardM1(input,pwm_stop);
+	roboclaw.ForwardBackwardM2(input,pwm_stop);
 }
