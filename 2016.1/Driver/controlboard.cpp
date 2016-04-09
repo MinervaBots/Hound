@@ -4,18 +4,20 @@
 ControlBoard::ControlBoard(byte tx_pin, byte rx_pin, int timeOut, int address):
     driver(tx_pin, rx_pin, timeOut, address)
 {
+    r_pwm = driver.getRPWM();
+    l_pwm = driver.getLPWM();
     setPWM(0,0);
 	setMinPWM(0,0);
 }
 
 void ControlBoard::setRPWM(byte pwm, bool reverse)
 {
-    driver.setRPWM(byte pwm, bool reverse);
+    driver.setRPWM(pwm,reverse);
 }
 
 void ControlBoard::setLPWM(byte pwm, bool reverse)
 {
-    driver.setLPWM(byte pwm, bool reverse);
+    driver.setLPWM(pwm,reverse);
 }
 
 void ControlBoard::stop()
@@ -43,6 +45,5 @@ void ControlBoard::setMinPWM(byte r_min_pwm, byte l_min_pwm)
 	 * at low pwms. As soon as the pwm is below this value,
 	 * the program will write zero on the motor input
 	 */
-	driver.r_motor.setMinPWM(r_min_pwm);
-	driver.l_motor.setMinPWM(l_min_pwm);
+	driver.setMinPWM(r_min_pwm,l_min_pwm);
 }

@@ -25,5 +25,8 @@ public:
 
 	//Driver
 	DuoDriver driver;
+
+protected:
+    byte r_pwm, l_pwm;
 };
 #endif
