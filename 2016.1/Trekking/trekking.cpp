@@ -47,7 +47,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	calibrate_angle_timer(this, &Trekking::calibrateAngle)
 {
 	//Streams
-	command_stream = &Serial; //bluetooth on Serial1
+	command_stream = &Serial; //bluetooth on Serial
 	log_stream = &Serial;
 
 	log.setTarget(log_stream);

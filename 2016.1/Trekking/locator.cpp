@@ -237,7 +237,7 @@ void Locator::calcutePosition(float dT){
 	
 	// Serial.print('\t');
 	// Serial.println(med_angular_speed);
-	Serial.println();
+	// Serial.println();
 
 	//Update values
 	last_position.set(x, y, theta);
