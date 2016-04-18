@@ -1,5 +1,6 @@
 #include "trekking.h"
 #include "trekkingpins.h"
+#include "../Robot/Robot.h"
 
 #define ONEINPUT
 /* In order to use the driver with two control signals, comment the line above
@@ -8,26 +9,29 @@ the pins! */
 
 
 /*----|Public|---------------------------------------------------------------*/
-Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
+Trekking::Trekking(float max_linear_velocity, float max_angular_velocity, DualDriver* driver_pointer):
+	Robot(driver_pointer),
+	
+
 	//Velocities
 	MAX_LINEAR_VELOCITY(max_linear_velocity),
 	MAX_ANGULAR_VELOCITY(max_angular_velocity),
 
-       //Distances for Ultrasound
-       MAX_SONAR_DISTANCE(500),
-       MIN_SONAR_DISTANCE(10),
+	//Distances for Ultrasound
+	MAX_SONAR_DISTANCE(500),
+	MIN_SONAR_DISTANCE(10),
 
 	//Motors
 	MAX_MOTOR_PWM(130),
 	MIN_MOTOR_PWM(100),
 	MAX_RPS(3000),
 
-	#ifdef ONEINPUT
-	robot(R_MOTOR_PIN,L_MOTOR_PIN),
-	#else
-	robot(R_ENABLE_PIN,R_MOTOR_1_PIN,R_MOTOR_2_PIN,
-		  L_ENABLE_PIN,L_MOTOR_1_PIN,L_MOTOR_2_PIN),
-	#endif // ONEINPUT
+	// #ifdef ONEINPUT
+	// robot(R_MOTOR_PIN,L_MOTOR_PIN),
+	// #else
+	// robot(R_ENABLE_PIN,R_MOTOR_1_PIN,R_MOTOR_2_PIN,
+	// 	  L_ENABLE_PIN,L_MOTOR_1_PIN,L_MOTOR_2_PIN),
+	// #endif // ONEINPUT
 
 	COMMAND_BAUD_RATE(9600),
 	LOG_BAUD_RATE(9600),
@@ -63,7 +67,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 
 	log.setTarget(log_stream);
 
-	robot.setMinPWM(80, 80);
+	Robot::setMinPWM(80, 80);
 
 	//MUST CHECK THE RIGHT ORDER ON THE BOARD
 	sonar_list.addSonar(&left_sonar);
@@ -93,7 +97,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity):
 	right_pid.Init(kp_right, kd_right, ki_right, bsp_right);
 	left_pid.Init(kp_left, kd_left, ki_left, bsp_left);
 
-	reset();
+	// reset();
 }
 
 Trekking::~Trekking() {
@@ -171,8 +175,8 @@ void Trekking::goStraightWithControl(float meters){
 
 /*----|Private: Matlab related functions|------------------------------------*/
 Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long tempo){
+	// 	Position* trekking_position = locator.getLastPosition();
 	Position* destination = targets.get(current_target_index);
-// 	Position* trekking_position = locator.getLastPosition();
 	Position planned_position = Position();
 	float t = (float) tempo;
 	t /= 1000; //Mills to sec
@@ -250,37 +254,8 @@ void Trekking::controlMotors(float v, float w, bool enable_pid){
 	}
 
 	// Setting PWM
-	robot.setRPWM(right_pwm, right_reverse);
-	robot.setLPWM(left_pwm, left_reverse);
-
-	// log << DEBUG << "" << log_endl;
-	// log << "\t" << right_desired_vel;
-	// log << "\t" << left_desired_vel;
-
-	// log << "\t" << locator.right_speed;
-	// log << "\t" << locator.left_speed;
-
-	// log << "\t" << right_pid_out;
-	// log << "\t" << left_pid_out;
-
-	// log << "\t" << right_pwm;
-	// log << "\t" << left_pwm;
-	// log << log_endl;
-
-	/****** OLD *******/
-	//calculating pwm
-	// byte right_pwm = right_pid_out*MAX_MOTOR_PWM/MAX_RPS;
-// 	byte right_pwm = right_pid_out;
-	// bool right_reverse = (right_pid_out < 0);
-// 	bool right_reverse = false;
-// 	byte left_pwm = left_pid_out;
-	// byte left_pwm = left_pid_out*MAX_MOTOR_PWM/MAX_RPS;
-	// bool left_reverse = (left_pid_out < 0);
-// 	bool left_reverse = false;
-
-	// right_pwm = pidOut;
-
-
+	Robot::setRPWM(right_pwm, right_reverse);
+	Robot::setLPWM(left_pwm, left_reverse);
 }
 
 void Trekking::trackTrajectory() {
@@ -353,9 +328,9 @@ void Trekking::regulateControl() {
 /*----|Private: Operations modes|--------------------------------------------*/
 void Trekking::standby() {
 	if(operation_mode_switch == AUTO_MODE) {
-		// log.debug("mode switch", "auto");
+		log.debug("mode switch", "auto");
 		if(init_button) {
-			// log.debug("init button", init_button);
+			log.debug("init button", init_button);
 			emergency();
 			reset();
 			if(checkSensors()) {
@@ -369,7 +344,7 @@ void Trekking::standby() {
 			}
 		}
 	} else if(current_command != ' ') {
-		robot.useCommand(current_command);
+		Robot::useCommand(current_command);
 		log.debug("using command", current_command);
 	}
 }
@@ -471,8 +446,8 @@ void Trekking::reset() {
 	//Trekking objects
 	Position initial_position(0,0,0);
 	locator.reset(initial_position);
-	robot.setPWM(MAX_MOTOR_PWM, MAX_MOTOR_PWM);
-	robot.stop();
+	Robot::setPWM(MAX_MOTOR_PWM, MAX_MOTOR_PWM);
+	Robot::stop();
 
 	right_pid.reset();
 	left_pid.reset();
@@ -489,7 +464,7 @@ void Trekking::reset() {
 
 void Trekking::stop() {
 	log.assert("stop", "stopping robot");
-	robot.stop();
+	Robot::stop();
 }
 
 void Trekking::readInputs() {

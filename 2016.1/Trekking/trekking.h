@@ -3,19 +3,21 @@
 
 #include "../Log/log.h"
 #include "../XLMaxSonarEZ/sonarlist.h"
-#include "../Robot/robot.h"
+#include "../Robot/Robot.h"
 // #include "../Timer/timer.h"
 #include "trekkingmath.h"
 #include "position.h"
 #include "locator.h"
 #include "PIDControler.h"
+#include "../Robot/DualDriver.h"
+#include "DuoDriver.h"
 
 #define LIGHT_ON 		'l'
 #define LIGHT_OFF 		'o'
 
-class Trekking {
+class Trekking : public Robot{
 public:
-	Trekking(float max_linear_velocity, float max_angular_velocity);
+	Trekking(float max_linear_velocity, float max_angular_velocity, DualDriver* driver);
 	~Trekking();
 
 	void addTarget(Position *target);
@@ -33,8 +35,8 @@ private:
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
 
-       const float MAX_SONAR_DISTANCE;
-       const float MIN_SONAR_DISTANCE; // [m]
+	const float MAX_SONAR_DISTANCE;
+	const float MIN_SONAR_DISTANCE; // [m]
 
 	float desired_linear_velocity;
 	float desired_angular_velocity;
@@ -76,7 +78,7 @@ private:
 
 	float distance_to_target;
 
-	Robot robot;
+	// Robot robot;
 	
 	//Sonars
 	SonarList sonar_list;

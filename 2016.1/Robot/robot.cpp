@@ -1,36 +1,18 @@
 #include "robot.h"
 
-// This constructor was designed to be used with the RoboClaw Driver
-Robot::Robot(byte r_pin, byte l_pin):
-	SensorBoard(),
-	AutoControlBoard(r_pin, l_pin)
+Robot::Robot(DualDriver* driver)
 {
-}
-// This constructor was designed to be used with the Duo-Driver (China)
-Robot::Robot(byte r_enable,
-		byte r_motor_1, byte r_motor_2,
-
-		byte l_enable,
-		byte l_motor_1, byte l_motor_2,
-
-		byte r_vcc_ref, byte r_gnd_ref,
-		byte l_vcc_ref, byte l_gnd_ref):
-
-	SensorBoard(),
-	AutoControlBoard(r_enable, r_motor_1, r_motor_2,
-		l_enable, l_motor_1, l_motor_2,
-		r_vcc_ref, r_gnd_ref,
-		l_vcc_ref, l_gnd_ref){
+	this->driver = driver;
+	setCurveFactor(3);
+	setSpeed(100);
+	
+	// setCorrection(100,100);
+    // setPWM(127,127); // pq 127?
+	// setMinPWM(0,0);
 }
 
 void Robot::useCommand(char command)
 {
-	/*
-	 * These commands are compatible with this android app
-	 * https://sites.google.com/site/bluetoothrccar/
-	 * So the robot can be controlled with any android phone
-	 */
-
 	switch(command)
 	{
 		case 'F':
@@ -92,3 +74,122 @@ void Robot::useCommand(char command)
 			break;
 	}
 }
+
+
+
+/*----| Configurations for the Control Fucntions |-----------------------*/
+void Robot::setSpeed(unsigned int speed)
+{
+    if(speed > 100) {speed = 100;}
+	this->speed = speed/100.0;
+}
+
+void Robot::setCurveFactor(byte factor)
+{
+	if(factor == 0)
+	{
+		factor = 255;
+	}
+	curve_factor = factor;
+}
+
+
+
+/*----| Standard Control Fucntions |-------------------------------------*/
+void Robot::moveForward()
+{
+	setRPWM(r_pwm*r_correction*speed);
+	setLPWM(l_pwm*l_correction*speed);
+}
+
+void Robot::moveForwardRight()
+{
+	setRPWM(r_pwm*r_correction*speed/curve_factor);
+	setLPWM(l_pwm*l_correction*speed);
+}
+
+void Robot::moveForwardLeft()
+{
+	setRPWM(r_pwm*r_correction*speed);
+	setLPWM(l_pwm*l_correction*speed/curve_factor);
+}
+
+void Robot::moveBackwards()
+{
+	setRPWM(r_pwm*speed, true);
+	setLPWM(l_pwm*speed, true);
+}
+
+void Robot::moveBackwardsRight()
+{
+	setRPWM(r_pwm*speed/curve_factor, true);
+	setLPWM(l_pwm*speed,true);
+}
+
+void Robot::moveBackwardsLeft()
+{
+	setRPWM(r_pwm*speed, false);
+	setLPWM(l_pwm*speed/curve_factor, false);
+}
+
+void Robot::rotateClockwise()
+{
+	setRPWM(r_pwm*speed, true);
+	setLPWM(l_pwm*speed, false);
+}
+
+void Robot::rotateAntiClockwise()
+{
+	setRPWM(r_pwm*speed, false);
+	setLPWM(l_pwm*speed, true);
+}
+
+
+
+//----------//----------//----------//----------//----------//----------//----------
+// ATEMCAO!! FUNCOES USANDO DE FATO O DRIVER!!
+
+/*----| Custom Control Fucntions |---------------------------------------*/
+void Robot::setPWM(byte r_pwm, byte l_pwm, bool r_reverse, bool l_reverse)
+{
+	setRPWM(r_pwm, r_reverse);
+	setLPWM(l_pwm, l_reverse);
+}
+
+// void Robot::setPWM(byte r_pwm, byte l_pwm)
+// {
+// 	setRPWM(r_pwm, false);
+// 	setLPWM(l_pwm, false);
+// }
+
+
+void Robot::setRPWM(byte pwm, bool reverse)
+{	
+	driver->setAllRightPWM(pwm, reverse);
+}
+
+void Robot::setLPWM(byte pwm, bool reverse)
+{
+	driver->setAllLeftPWM(pwm, reverse);
+}
+
+void Robot::stop()
+{
+	driver->stopAll();
+}
+
+void Robot::setMinPWM(byte r_min_pwm, byte l_min_pwm)
+{
+	driver->setMinRightPWM(r_min_pwm);
+	driver->setMinLeftPWM(l_min_pwm);
+}
+
+DualDriver*  Robot::getDriver()
+{
+	return driver;
+}
+
+
+
+
+
