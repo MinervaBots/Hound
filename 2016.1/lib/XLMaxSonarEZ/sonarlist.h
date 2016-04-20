@@ -13,14 +13,15 @@
 /*
 	To get the linked list class, if not available, check https://github.com/ivanseidel/LinkedList
 */
-#ifndef LinkedList_h
-#include "../LinkedList/LinkedList.h"
-#endif
+// #ifndef LinkedList_h
+// #include "../LinkedList/LinkedList.h"
+#include "LinkedList.h"
+// #endif
 
 #include "XLMaxSonarEZ.h"
 
 class SonarList: public LinkedList<XLMaxSonarEZ*> {
-public:	
+public:
 	SonarList(Sonar::OperationMode operation_mode);
 	~SonarList();
 

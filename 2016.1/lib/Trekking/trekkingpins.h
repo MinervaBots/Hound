@@ -1,3 +1,7 @@
+#ifndef TREKKING_PINS_H
+#define TREKKING_PINS_H
+
+#include <Arduino.h>
 /*
 	Buttons and switches
 */
@@ -39,3 +43,6 @@ const byte RIGHT_SONAR_TX_PIN = A7;
 */
 
 const byte ALERT_LED = 13;
+
+
+#endif //TREKKING_PINS_H

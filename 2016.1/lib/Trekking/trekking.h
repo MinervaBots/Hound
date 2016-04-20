@@ -5,6 +5,7 @@
 #include "../XLMaxSonarEZ/sonarlist.h"
 #include "../Robot/Robot.h"
 // #include "../Timer/timer.h"
+#include "trekkingpins.h"
 #include "trekkingmath.h"
 #include "position.h"
 #include "locator.h"
@@ -24,13 +25,13 @@ public:
 	void start();
 	void update();
 	void emergency();
-	
+
 	/*----|Test related functions|-------------------------------------------*/
 	void goStraight(bool enable_pid);
 	void doCircle(bool enable_pid);
 	void goStraightWithControl(float meters);
-	
-	
+
+
 private:
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
@@ -54,7 +55,7 @@ private:
 	const float MAX_RPS;
 	const int LIGHT_DURATION;
 	const float PROXIMITY_RADIUS;
-	
+
 	const int READ_ENCODERS_TIME;
 	const int READ_MPU_TIME;
 
@@ -79,7 +80,7 @@ private:
 	float distance_to_target;
 
 	// Robot robot;
-	
+
 	//Sonars
 	SonarList sonar_list;
 	XLMaxSonarEZ right_sonar;
@@ -112,13 +113,13 @@ private:
 	float left_vel_ref, right_vel_ref;
 	float pid_convertion_const;
 
-	
+
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
 	void controlMotors(float v, float w, bool enable_pid);
 	void trackTrajectory();
 	void regulateControl();
-	
+
 	/*----|Operation modes|--------------------------------------------------*/
 	void standby();
 	void search();
@@ -133,7 +134,7 @@ private:
 	void readInputs();
 	void turnOnSirene();
 	void turnOffSirene();
-	
+
 	/*----|Timer functions|--------------------------------------------------*/
 	void startTimers();
 	void stopTimers();
@@ -142,7 +143,7 @@ private:
 
 	/*----|Auxiliar functions|-----------------------------------------------*/
 	// checks inputs and updates timers for each Arduino's outer-loop iteration
-	void loopCheck(); 
+	void loopCheck();
 	bool checkSensors(); // returns 1 if all the sensors are working
 	void calibrateAngle();
 	void debug();
