@@ -48,6 +48,7 @@ void setup() {
   Serial.begin(9600);
   Serial1.begin(9600);
   Serial2.begin(57600);
+  // first commit with Atom IDE
 
   Wire.begin();
   trekking.addTarget(cone_1);
