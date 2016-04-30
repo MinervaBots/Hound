@@ -147,6 +147,13 @@ private:
 	bool checkSensors(); // returns 1 if all the sensors are working
 	void calibrateAngle();
 	void debug();
+	void printSonarInfo();
+	void printEncodersInfo();
+	void printMPUInfo();
+	void printPosition();
+	void printVelocities();
+	void printTime();
+	void finishLogLine();
 
 };
 

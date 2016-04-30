@@ -11,7 +11,6 @@ the pins! */
 /*----|Public|---------------------------------------------------------------*/
 Trekking::Trekking(float max_linear_velocity, float max_angular_velocity, DualDriver* driver_pointer):
 	Robot(driver_pointer),
-	
 
 	//Velocities
 	MAX_LINEAR_VELOCITY(max_linear_velocity),
@@ -138,41 +137,6 @@ void Trekking::emergency() {
 }
 
 
-
-/*----|Public: Test related functions|---------------------------------------*/
-void Trekking::goStraight(bool enable_pid){
-	loopCheck();
-	controlMotors(1, 0, enable_pid);
-}
-
-void Trekking::doCircle(bool enable_pid){
-	loopCheck();
-	controlMotors(1, 1, enable_pid);
-}
-
-void Trekking::goStraightWithControl(float meters){
-	loopCheck();
-
-	unsigned long t = tracking_regulation_timer.getElapsedTime();
-	log << DEBUG << "" << log_endl;
-	log << "\t" << t;
-
-	Position* trekking_position = locator.getLastPosition();
-	Position* destination = targets.get(current_target_index);
-	destination->set(meters, 0.0, 0.0);
-
-	Position planned_position = plannedPosition(true, t);
-	Position gap = trekking_position->calculateGap(planned_position);
-
-	if(!is_tracking) {
-		log.debug("Search", "starting tracking timer");
-		tracking_regulation_timer.start();
-		is_tracking = true;
-	}
-}
-
-
-
 /*----|Private: Matlab related functions|------------------------------------*/
 Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long tempo){
 	// 	Position* trekking_position = locator.getLastPosition();
@@ -219,6 +183,7 @@ Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long temp
 }
 
 void Trekking::controlMotors(float v, float w, bool enable_pid){
+	// Serial.println("controling motors");
 	// v velocity in m/s and w the angle in rad/s
 
 	//Calculating rps
@@ -293,6 +258,20 @@ void Trekking::trackTrajectory() {
 
 	controlMotors(v, w, true);
 	distance_to_target = trekking_position->distanceFrom(targets.get(current_target_index));
+
+	printTime();
+	printPosition();
+	printVelocities();
+	printEncodersInfo();
+	finishLogLine();
+
+	if(distance_to_target < PROXIMITY_RADIUS) {
+			 	tracking_regulation_timer.stop();
+			 	tracking_regulation_timer.reset();
+			 	is_tracking = false;
+			 	log.assert("operation mode", "refined search");
+			 	operation_mode = &Trekking::refinedSearch;
+			}
 }
 
 
@@ -366,6 +345,9 @@ void Trekking::search() {
 }
 
 void Trekking::refinedSearch() {
+	printEncodersInfo();
+	finishLogLine();
+
 	// MAX_SONAR_DISTANCE
 	// MIN_SONAR_DISTANCE
 	// MAX_LINEAR_VELOCITY and angular....
@@ -397,6 +379,7 @@ void Trekking::refinedSearch() {
 		//  Perhaps it would be best to use data from the gyroscope to
 		// determine wheather to use +W or -W
 	}
+
 }
 
 void Trekking::lighting() {
@@ -561,6 +544,7 @@ void Trekking::debug() {
 		standby();
 	} else if(current_command == 'f') {
 		log.debug("debug command", "set to refined search");
+		operation_mode_switch = AUTO_MODE;
 		operation_mode = &Trekking::refinedSearch;
 
 	} else if(current_command == 'l') {
@@ -585,27 +569,25 @@ void Trekking::debug() {
 			Serial.print("\t");
 		}
 		Serial.println();
-	} else if(current_command == 'L') {
+	} else if(current_command == 'P') {
 		log.debug("debug command", "print locator");
-		log << DEBUG << "angular\tlinear\ttime" << log_endl;
+		log << DEBUG << "x\ty\tTheta\t\tlinear\tangular\ttime" << log_endl;
+		printPosition();
+		printVelocities();
+		finishLogLine();
 
-		log << locator.getRobotAngularSpeed() << '\t';
-		log << locator.getRobotLinearSpeed() << '\t';
-		log << locator.getLastUpdateTime() << log_endl;
 	} else if(current_command == 'm') {
 		log.debug("debug command", "print mpu");
-		log << DEBUG << "x\ty\tz" << log_endl;
+		log << DEBUG << "[ANG]\talpha\tbeta\tTheta" << log_endl;
+		printMPUInfo();
+		finishLogLine();
 
-		log << locator.euler_radians[0] << '\t';
-		log << locator.euler_radians[1] << '\t';
-		log << locator.euler_radians[2] << log_endl;
 	} else if(current_command == 'o') {
 		log.debug("debug command", "print sonars");
 		log << DEBUG << "left\tcenter\tright" << log_endl;
-		sonar_list.read();
-		log << left_sonar.getDistance() << '\t';
-		log << center_sonar.getDistance() << '\t';
-		log << right_sonar.getDistance() << log_endl;
+		printSonarInfo();
+		finishLogLine();
+
 	} else if(current_command == 'b') {
 		log.debug("debug command", "print buttons");
 		log << DEBUG << "init\temergency\tmode" << log_endl;
@@ -615,3 +597,82 @@ void Trekking::debug() {
 		log << digitalRead(OPERATION_MODE_SWITCH_PIN) << log_endl;
 	}
 }
+
+void Trekking::printSonarInfo()
+{
+	sonar_list.read();
+	log << '\t' << left_sonar.getDistance();
+	log << '\t' << center_sonar.getDistance();
+	log << '\t' << right_sonar.getDistance() << '\t';
+}
+
+void Trekking::printEncodersInfo()
+{
+	for(int i = 0; i < locator.encoder_list.size(); i++) {
+		log << '\t' << locator.encoder_list.get(i)->getPulses();
+	}
+	log << '\t';
+}
+
+void Trekking::printMPUInfo()
+{
+	log << '\t' << locator.euler_radians[0]*180/PI;
+	log << '\t' << locator.euler_radians[1]*180/PI;
+	log << '\t' << locator.euler_radians[2]*180/PI << '\t';
+}
+
+void Trekking::printPosition(){
+	log << '\t' << locator.getLastPosition()->getX();
+	log << '\t' << locator.getLastPosition()->getY();
+	log << '\t' << locator.getLastPosition()->getTheta() << '\t';
+}
+
+void Trekking::printVelocities()
+{
+	log << '\t' << locator.getRobotLinearSpeed();
+	log << '\t' << locator.getRobotAngularSpeed() << '\t';
+}
+
+void Trekking::finishLogLine()
+{
+	log << log_endl;
+}
+
+void Trekking::printTime()
+{
+	log << '\t' << locator.getLastUpdateTime() << '\t';
+}
+
+/*----|Public: Test related functions
+void Trekking::goStraight(bool enable_pid){
+	loopCheck();
+	controlMotors(1, 0, enable_pid);
+}
+
+void Trekking::doCircle(bool enable_pid){
+	loopCheck();
+	controlMotors(1, 1, enable_pid);
+}
+
+void Trekking::goStraightWithControl(float meters){
+	loopCheck();
+
+	unsigned long t = tracking_regulation_timer.getElapsedTime();
+	log << DEBUG << "" << log_endl;
+	log << "\t" << t;
+
+	Position* trekking_position = locator.getLastPosition();
+	Position* destination = targets.get(current_target_index);
+	destination->set(meters, 0.0, 0.0);
+
+	Position planned_position = plannedPosition(true, t);
+	Position gap = trekking_position->calculateGap(planned_position);
+
+	if(!is_tracking) {
+		log.debug("Search", "starting tracking timer");
+		tracking_regulation_timer.start();
+		is_tracking = true;
+	}
+
+}
+|---------------------------------------*/

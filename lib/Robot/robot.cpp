@@ -5,10 +5,9 @@ Robot::Robot(DualDriver* driver)
 	this->driver = driver;
 	setCurveFactor(3);
 	setSpeed(100);
-	
-	// setCorrection(100,100);
-    // setPWM(127,127); // pq 127?
-	// setMinPWM(0,0);
+	this->l_pwm = 127; //pq 127??
+	this->r_pwm = 127;
+	setMinPWM(0,0);
 }
 
 void Robot::useCommand(char command)
@@ -98,20 +97,22 @@ void Robot::setCurveFactor(byte factor)
 /*----| Standard Control Fucntions |-------------------------------------*/
 void Robot::moveForward()
 {
-	setRPWM(r_pwm*r_correction*speed);
-	setLPWM(l_pwm*l_correction*speed);
+	// Serial.print("PWM:");Serial.println(r_pwm);
+	// Serial.print("Speed:");Serial.println(speed);
+	setRPWM(r_pwm*speed);
+	setLPWM(l_pwm*speed);
 }
 
 void Robot::moveForwardRight()
 {
-	setRPWM(r_pwm*r_correction*speed/curve_factor);
-	setLPWM(l_pwm*l_correction*speed);
+	setRPWM(r_pwm*speed/curve_factor);
+	setLPWM(l_pwm*speed);
 }
 
 void Robot::moveForwardLeft()
 {
-	setRPWM(r_pwm*r_correction*speed);
-	setLPWM(l_pwm*l_correction*speed/curve_factor);
+	setRPWM(r_pwm*speed);
+	setLPWM(l_pwm*speed/curve_factor);
 }
 
 void Robot::moveBackwards()
@@ -164,7 +165,7 @@ void Robot::setPWM(byte r_pwm, byte l_pwm, bool r_reverse, bool l_reverse)
 
 
 void Robot::setRPWM(byte pwm, bool reverse)
-{	
+{
 	driver->setAllRightPWM(pwm, reverse);
 }
 
@@ -188,8 +189,3 @@ DualDriver*  Robot::getDriver()
 {
 	return driver;
 }
-
-
-
-
-

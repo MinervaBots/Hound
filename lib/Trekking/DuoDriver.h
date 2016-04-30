@@ -16,9 +16,9 @@ class DuoDriver: public DualDriver
 {
 
 public:
-    DuoDriver(byte tx_pin, byte rx_pin, int timeOut, int address);  // I am not sure the address is necessarily of the type int
-	
-    void setAllRightPWM(byte pwm, bool reverse = false);
+  DuoDriver(byte tx_pin, byte rx_pin, int timeOut, int address);  // I am not sure the address is necessarily of the type int
+
+  void setAllRightPWM(byte pwm, bool reverse = false);
 	void setAllLeftPWM(byte pwm, bool reverse = false);
 
 	void setMinLeftPWM(byte pwm);
@@ -27,10 +27,11 @@ public:
 	void setMaxLeftPWM(byte pwm);
 	void setMaxRightPWM(byte pwm);
 
-	void stopAll();
-
 	void setMinPWM(byte r_pwm, byte l_pwm);
 	void setMaxPWM(byte r_pwm, byte l_pwm);
+
+  void stopAll();
+  void setCorrection(float r_correction,float l_correction);
 
 	void moveForward(byte percentage);
 	void moveBackwards(byte percentage);
@@ -38,7 +39,8 @@ public:
 	void setStopPWM(byte pwm);
 	byte getRPWM();
 	byte getLPWM();
-	
+
+
 
 	RoboClaw roboclaw;
 
@@ -46,10 +48,11 @@ protected:
     byte pwm_stop;
     byte r_pwm_min, l_pwm_min;
     byte r_pwm_max, l_pwm_max;
+    float r_pwm_gain, l_pwm_gain;
 
     int input;
     byte rpwm;
-    byte lpwm;    
+    byte lpwm;
 };
 
 #endif

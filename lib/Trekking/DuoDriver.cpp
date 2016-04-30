@@ -7,11 +7,15 @@ DuoDriver::DuoDriver(byte tx_pin, byte rx_pin, int timeOut, int address):
     input = address;
     setStopPWM(64);
     setMinPWM(0,0);
+    setCorrection(0, 0);
     setMaxPWM(255,255);
 }
 
 void DuoDriver::setAllRightPWM(byte pwm, bool reverse)
 {
+    // Se a funcao map limita a velocidade, faz mais sentido colocar a correcao
+    // antes ou depois? Se ela nao limitar, nao importa onde a colocamos.
+    pwm = this->r_pwm_gain*pwm;
     if (reverse) rpwm = map(pwm,0,255,64,0);
     else rpwm = map(pwm,0,255,64,128);
     roboclaw.ForwardBackwardM1(input,rpwm);
@@ -19,6 +23,9 @@ void DuoDriver::setAllRightPWM(byte pwm, bool reverse)
 
 void DuoDriver::setAllLeftPWM(byte pwm, bool reverse)
 {
+    // Se a funcao map limita a velocidade, faz mais sentido colocar a correcao
+    // antes ou depois? Se ela nao limitar, nao importa onde a colocamos.
+    pwm = this->l_pwm_gain*pwm;
     if (reverse) lpwm = map(pwm,0,255,64,0);
     else lpwm = map(pwm,0,255,64,128);
     roboclaw.ForwardBackwardM2(input,lpwm);
@@ -55,8 +62,11 @@ void DuoDriver::stopAll()
     roboclaw.ForwardBackwardM2(input,pwm_stop);
 }
 
-
-
+void DuoDriver::setCorrection(float r_correction,float l_correction)
+{
+    this->r_pwm_gain = 1 + r_correction;
+    this->l_pwm_gain = 1 + l_correction;
+}
 
 void DuoDriver::moveForward(byte percentage)
 {
@@ -85,7 +95,6 @@ void DuoDriver::setMaxPWM(byte r_pwm, byte l_pwm)
 }
 
 
-
 void DuoDriver::setStopPWM(byte pwm)
 {
     pwm_stop = pwm;
@@ -100,5 +109,3 @@ byte DuoDriver::getLPWM()
 {
     return lpwm;
 }
-
-
