@@ -25,13 +25,6 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity, DualDr
 	MIN_MOTOR_PWM(100),
 	MAX_RPS(3000),
 
-	// #ifdef ONEINPUT
-	// robot(R_MOTOR_PIN,L_MOTOR_PIN),
-	// #else
-	// robot(R_ENABLE_PIN,R_MOTOR_1_PIN,R_MOTOR_2_PIN,
-	// 	  L_ENABLE_PIN,L_MOTOR_1_PIN,L_MOTOR_2_PIN),
-	// #endif // ONEINPUT
-
 	COMMAND_BAUD_RATE(9600),
 	LOG_BAUD_RATE(9600),
 	ENCODER_BAUD_RATE(57600),
@@ -187,22 +180,22 @@ void Trekking::controlMotors(float v, float w, bool enable_pid){
 	// v velocity in m/s and w the angle in rad/s
 
 	//Calculating rps
-	float right_desired_vel = (2*v + w*DISTANCE_FROM_RX);///(2*WHEEL_RADIUS);//[RPS]
-	float left_desired_vel = (2*v - w*DISTANCE_FROM_RX);///(2*WHEEL_RADIUS);//[RPS]
+	float r_desired_vel = (v + w*DISTANCE_FROM_RX)*(2*PI)/WHEEL_RADIUS; //[RPS]
+	float l_desired_vel = (v - w*DISTANCE_FROM_RX)*(2*PI)/WHEEL_RADIUS; //[RPS]
 
 	//PID
 	float right_vel = 0;
 	float left_vel = 0;
 	if(enable_pid){
 		right_vel = floor(right_pid.run(
-			abs(right_desired_vel), locator.getRightSpeed() ));
+			abs(r_desired_vel), locator.getRightSpeed() ));
 
 		left_vel = floor(left_pid.run(
-			abs(left_desired_vel), locator.getLeftSpeed() ));
+			abs(l_desired_vel), locator.getLeftSpeed() ));
 	}
 	else {
-		right_vel = right_desired_vel;
-		left_vel = left_desired_vel;
+		right_vel = r_desired_vel;
+		left_vel = l_desired_vel;
 	}
 	// calculating pwm
 	byte right_pwm = right_vel*MAX_MOTOR_PWM/MAX_RPS;
@@ -259,19 +252,6 @@ void Trekking::trackTrajectory() {
 	controlMotors(v, w, true);
 	distance_to_target = trekking_position->distanceFrom(targets.get(current_target_index));
 
-	printTime();
-	printPosition();
-	printVelocities();
-	printEncodersInfo();
-	finishLogLine();
-
-	if(distance_to_target < PROXIMITY_RADIUS) {
-			 	tracking_regulation_timer.stop();
-			 	tracking_regulation_timer.reset();
-			 	is_tracking = false;
-			 	log.assert("operation mode", "refined search");
-			 	operation_mode = &Trekking::refinedSearch;
-			}
 }
 
 
@@ -281,23 +261,25 @@ void Trekking::regulateControl() {
 	const int k_gamma = 3;
 	const int k_delta = -1;
 
+	// getting desired (final) configuration
+	Position* q_desired = targets.get(current_target_index);
 
-	// getting configurations (final/desired and current/real)
-	Position* q_real = locator.getLastPosition(); //real robot position
-	unsigned long t = tracking_regulation_timer.getElapsedTime();
-	Position gap = q_real->calculateGap(*targets.get(current_target_index));
+	// getting real (current) configuration
+	Position* q_real = locator.getLastPosition();
+
+	// getting gap between configurations
+	Position gap = q_desired->calculateGap(*q_real);
 
 	//Angular transformation
-
 	float rho = sqrt( pow(gap.getX(),2) + pow(gap.getY(),2) );
 	float gamma = atan2(gap.getY(), gap.getX()) - q_real->getTheta();
 	float delta = -gamma - q_real->getTheta();
 
-	//Error Gain and v e w definition
+	//Calculating v e w definition
 	float v = (k_rho * rho) * cos(gamma);
 	float w = (k_delta * delta + gamma) * (k_gamma * sin(gamma) * cos(gamma)/gamma);
 
-	controlMotors(v, w, true);
+	controlMotors(v, w, false);
 	distance_to_target = q_real->distanceFrom(targets.get(current_target_index));
 }
 
@@ -331,11 +313,22 @@ void Trekking::standby() {
 void Trekking::search() {
 	if(!is_tracking) {
 		log.debug("Search", "starting tracking timer");
-		tracking_regulation_timer.start();
+		// tracking_regulation_timer.start();
 		is_tracking = true;
 	}
+
+	regulateControl();
+
+	// Log for debug
+	printTime();
+	printPosition();
+	printVelocities();
+	printEncodersInfo();
+	finishLogLine();
+
 	//Colocar a condicao de proximidade
-	if(distance_to_target < PROXIMITY_RADIUS) {
+	if(distance_to_target < 0.5) {
+	// if(distance_to_target < PROXIMITY_RADIUS) {
 	 	tracking_regulation_timer.stop();
 	 	tracking_regulation_timer.reset();
 	 	is_tracking = false;
@@ -569,9 +562,9 @@ void Trekking::debug() {
 			Serial.print("\t");
 		}
 		Serial.println();
-	} else if(current_command == 'P') {
+	} else if(current_command == 'p') {
 		log.debug("debug command", "print locator");
-		log << DEBUG << "x\ty\tTheta\t\tlinear\tangular\ttime" << log_endl;
+		log << DEBUG << "\tx\ty\tTheta\t\tlinear\tangular\ttime" << log_endl;
 		printPosition();
 		printVelocities();
 		finishLogLine();
@@ -584,17 +577,17 @@ void Trekking::debug() {
 
 	} else if(current_command == 'o') {
 		log.debug("debug command", "print sonars");
-		log << DEBUG << "left\tcenter\tright" << log_endl;
+		log << DEBUG << "\tleft\tcenter\tright" << log_endl;
 		printSonarInfo();
 		finishLogLine();
 
 	} else if(current_command == 'b') {
 		log.debug("debug command", "print buttons");
-		log << DEBUG << "init\temergency\tmode" << log_endl;
+		log << DEBUG << "\tinit\temergency\tmode" << log_endl;
 
-		log << digitalRead(INIT_BUTTON_PIN) << '\t';
-		log << digitalRead(EMERGENCY_BUTTON_PIN) << '\t';
-		log << digitalRead(OPERATION_MODE_SWITCH_PIN) << log_endl;
+		log << '\t'<< digitalRead(INIT_BUTTON_PIN);
+		log << '\t'<< digitalRead(EMERGENCY_BUTTON_PIN);
+		log << '\t'<< digitalRead(OPERATION_MODE_SWITCH_PIN) << log_endl;
 	}
 }
 

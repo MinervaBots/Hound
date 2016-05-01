@@ -21,7 +21,7 @@
 
 const float WHEEL_RADIUS = 0.075;
 const float PULSES_PER_ROTATION = 1216.0;
-const float DISTANCE_FROM_RX = 0.18;
+const float DISTANCE_FROM_RX = 0.1375; // 137.5mm = distancia entre a roda e o eixo sagital do robo
 
 #ifndef PI
 #define PI 3.141592653589793238;
@@ -64,7 +64,7 @@ private:
 //	SimpleEncoder back_left_encoder;
 //	SimpleEncoder back_right_encoder;
 
-	
+
 	unsigned long last_update_time;
 	float robot_linear_speed;
 	float robot_angular_speed;
@@ -82,10 +82,10 @@ private:
 	bool mpu_first_time;
 
 
-	
+
 	void calculateSpeeds(float pps[]);
 	void calcutePosition(float deta_t);
-	
+
 };
 
 #endif
