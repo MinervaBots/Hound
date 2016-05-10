@@ -17,8 +17,8 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity, DualDr
 	MAX_ANGULAR_VELOCITY(max_angular_velocity),
 
 	//Distances for Ultrasound
-	MAX_SONAR_DISTANCE(500),
-	MIN_SONAR_DISTANCE(10),
+	MAX_SONAR_DISTANCE(200),
+	MIN_SONAR_DISTANCE(30),
 
 	//Motors
 	MAX_MOTOR_PWM(130),
