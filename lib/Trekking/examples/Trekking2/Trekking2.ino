@@ -6,9 +6,10 @@
 #include "position.h"
 #include "trekkingpins.h"
 #include "PIDControler.h"
-// #include "XLMaxSonarEZ.h"
+#include "XLMaxSonarEZ.h"
+#include "LinkedList.h"
 #include "log.h"
-#include "Robot.h"
+#include "robot.h"
 
 #include "sensor.h"
 #include "ultrasonic.h"

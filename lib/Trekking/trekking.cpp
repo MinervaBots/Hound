@@ -1,6 +1,6 @@
 #include "trekking.h"
 #include "trekkingpins.h"
-#include "../Robot/Robot.h"
+#include "../Robot/robot.h"
 
 #define ONEINPUT
 /* In order to use the driver with two control signals, comment the line above
@@ -358,17 +358,33 @@ void Trekking::refinedSearch() {
 		operation_mode = &Trekking::lighting;
 		controlMotors(0,0,false);
 	}
-	else if (c<MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY,0,false);
+	else if (c<MAX_SONAR_DISTANCE){
+		if (c<MAX_SONAR_DISTANCE/2.5){
+			if (l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/4,0,false);
+			else if (l<MAX_SONAR_DISTANCE && r<MAX_SONAR_DISTANCE){
+				if (l>r) controlMotors(MAX_LINEAR_VELOCITY/4,MAX_ANGULAR_VELOCITY/8,false);
+				else controlMotors(MAX_LINEAR_VELOCITY/4,-MAX_ANGULAR_VELOCITY/8,false);
+			}
+			else if (r<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/4,-MAX_ANGULAR_VELOCITY/4,false);
+			else if (l<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/4,MAX_ANGULAR_VELOCITY/4,false);
+		} else {
+			if (l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/2,0,false);
+			else if (l<MAX_SONAR_DISTANCE && r<MAX_SONAR_DISTANCE){
+				if (l>r) controlMotors(MAX_LINEAR_VELOCITY/2,MAX_ANGULAR_VELOCITY/8,false);
+				else controlMotors(MAX_LINEAR_VELOCITY/2,-MAX_ANGULAR_VELOCITY/8,false);
+			}
+			else if (r<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/2,-MAX_ANGULAR_VELOCITY/4,false);
+			else if (l<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/2,MAX_ANGULAR_VELOCITY/4,false);
+		}
 	}
 	else if (r<MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY,-MAX_ANGULAR_VELOCITY,false);
+		controlMotors(MAX_LINEAR_VELOCITY/2,-MAX_ANGULAR_VELOCITY/2,false);
 	}
 	else if (l<MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY,MAX_LINEAR_VELOCITY,false);
+		controlMotors(MAX_LINEAR_VELOCITY/2,MAX_ANGULAR_VELOCITY/2,false);
 	}
 	else if (c>MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
-		controlMotors(0,MAX_LINEAR_VELOCITY,false);
+		controlMotors(0,MAX_ANGULAR_VELOCITY/2,false);
 		//  Perhaps it would be best to use data from the gyroscope to
 		// determine wheather to use +W or -W
 	}

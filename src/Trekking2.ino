@@ -6,9 +6,9 @@
 #include "position.h"
 #include "trekkingpins.h"
 #include "PIDControler.h"
-// #include "XLMaxSonarEZ.h"
+#include "XLMaxSonarEZ.h"
 #include "log.h"
-#include "Robot.h"
+#include "robot.h"
 
 #include "sensor.h"
 #include "ultrasonic.h"
@@ -37,7 +37,7 @@ DuoDriver* driver = new DuoDriver(TX_MOTOR_PIN,
                                   ROBOCLAW_ADDRESS);
                                   //
 Trekking trekking(max_linear_vel, max_angular_vel, driver);
-Position *cone_1 = new Position(5, 0, 0);
+Position *cone_1 = new Position(0, 10, 0);
 Position *cone_2 = new Position(0, 0, 0);
 Position *cone_3 = new Position(0, 0, 0);
 // BMSerial terminal(0, 1);
