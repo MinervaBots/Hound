@@ -5,6 +5,9 @@
 #include "simpleencoder.h"
 #include "SoftwareSerial.h"
 
+#include <list>
+#include <algorithm>
+
 #define SIRENE_PIN  9
 #define R_ENC_1 6
 #define R_ENC_2 7
@@ -18,6 +21,7 @@ struct Encoder {
   int last_out_1, last_out_2;
   int delta_pulses;
   int pulses;
+  std::list<[2]> encoder_states;
 
   Encoder(byte pin_1, byte pin_2){
     this->pin_1 = pin_1;
@@ -28,6 +32,10 @@ struct Encoder {
     this->last_out_2 = 0;
     delta_pulses = 0;
     pulses = 0;
+    encoder_states.push_back({0,0});
+    encoder_states.push_back({0,1});
+    encoder_states.push_back({1,0});
+    encoder_states.push_back({1,1});
   }
 
   int read() {

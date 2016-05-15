@@ -17,7 +17,7 @@
 #include <dmpmap.h>
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
-#include <EEPROM.h>
+// #include <EEPROM.h>
 
 const float WHEEL_RADIUS = 0.075;
 const float PULSES_PER_ROTATION = 1216.0;

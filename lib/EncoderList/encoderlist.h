@@ -8,10 +8,10 @@
 	To get the linked list class, if not available, check https://github.com/ivanseidel/LinkedList
 */
 #ifndef LinkedList_h
-#include "../LinkedList/LinkedList.h"
+#include "LinkedList.h"
 #endif
 
-#include "../Encoder/simpleencoder.h"
+#include "simpleencoder.h"
 
 #define ACKNOWLEDGEMENT 'a'
 #define TOKEN 			','

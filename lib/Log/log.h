@@ -77,16 +77,20 @@ public:
 
 	/*
 		Calls the write method from the current stream
-	*/	
+	*/
 	size_t write(uint8_t b) {
-		stream->write(b);
+		size_t bytes_written = 0;
+		bytes_written = stream->write(b);
+		return bytes_written;
 	}
 
 	/*
 		Calls the write method from the current stream
 	*/
 	size_t write(const uint8_t *buffer, size_t size) {
-		stream->write(buffer, size);
+		size_t bytes_written = 0;
+		bytes_written = stream->write(buffer, size);
+		return bytes_written;
 	}
 
 	/*
@@ -102,7 +106,7 @@ public:
 	template <typename T>
 
 	size_t print(LogPriority priority, char const * tag, T msg, bool print_header=true) {
-		
+
 		size_t bytes_written = 0;
 
 		if(is_enabled && (this->priority == priority || this->priority == VERBOSE)) {
@@ -174,13 +178,13 @@ public:
 	void assert(char const * tag, T msg) {
 		println(ASSERT, tag, msg);
 	}
-	
+
 	template <typename T>
 
 	void debug(char const * tag, T msg) {
 		println(DEBUG, tag, msg);
 	}
-	
+
 	template <typename T>
 
 	void error(char const * tag, T msg) {
@@ -188,17 +192,17 @@ public:
 	}
 
 	template <typename T>
-	
+
 	void info(char const * tag, T msg) {
 		println(INFO, tag, msg);
 	}
 
 	template <typename T>
-	
+
 	void verbose(char const * tag, T msg) {
 		println(VERBOSE, tag, msg);
 	}
-	
+
 	template <typename T>
 
 	void warn(char const * tag, T msg) {
@@ -207,7 +211,7 @@ public:
 
 	using Print::print;
 	using Print::println;
-	
+
 private:
 	Stream * stream;
 	LogPriority priority;

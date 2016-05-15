@@ -33,36 +33,45 @@ public:
 
 
 private:
+	//Velocities
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
 
+	//Distances for Ultrasound
 	const float MAX_SONAR_DISTANCE;
 	const float MIN_SONAR_DISTANCE; // [m]
 
-	float desired_linear_velocity;
-	float desired_angular_velocity;
-
-	LinkedList<Position *> targets;
-	Position init_position;
-	int current_target_index;
+	//Motors
+	const byte MAX_MOTOR_PWM;
+	const byte MIN_MOTOR_PWM;
+	const float MAX_RPS;
 
 	const int COMMAND_BAUD_RATE;
 	const int LOG_BAUD_RATE;
 	const int ENCODER_BAUD_RATE;
 
-	const byte MAX_MOTOR_PWM;
-	const byte MIN_MOTOR_PWM;
-	const float MAX_RPS;
 	const int LIGHT_DURATION;
 	const float PROXIMITY_RADIUS;
 
 	const int READ_ENCODERS_TIME;
 	const int READ_MPU_TIME;
 
-	/*
-		Input states
-	*/
+	//Sonars
+	XLMaxSonarEZ right_sonar;
+	XLMaxSonarEZ left_sonar;
+	XLMaxSonarEZ center_sonar;
+	SonarList sonar_list;
 
+	LinkedList<Position *> targets;
+
+	Position init_position;
+
+	float desired_linear_velocity;
+	float desired_angular_velocity;
+
+	int current_target_index;
+
+	//Input states
 	bool init_button;
 	bool emergency_button;
 	bool operation_mode_switch;
@@ -79,13 +88,6 @@ private:
 
 	float distance_to_target;
 
-	// Robot robot;
-
-	//Sonars
-	SonarList sonar_list;
-	XLMaxSonarEZ right_sonar;
-	XLMaxSonarEZ left_sonar;
-	XLMaxSonarEZ center_sonar;
 
 	Log log;
 	// Kalman kalman;

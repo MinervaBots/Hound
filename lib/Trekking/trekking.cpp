@@ -9,8 +9,8 @@ the pins! */
 
 
 /*----|Public|---------------------------------------------------------------*/
-Trekking::Trekking(float max_linear_velocity, float max_angular_velocity, DualDriver* driver_pointer):
-	Robot(driver_pointer),
+Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
+	DualDriver* driver_pointer):Robot(driver_pointer),
 
 	//Velocities
 	MAX_LINEAR_VELOCITY(max_linear_velocity),
@@ -35,6 +35,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity, DualDr
 	READ_ENCODERS_TIME(30),
 	READ_MPU_TIME(30),
 
+	//Sonars
 	right_sonar(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN),
 	left_sonar(LEFT_SONAR_TX_PIN, LEFT_SONAR_RX_PIN),
 	center_sonar(CENTER_SONAR_TX_PIN, CENTER_SONAR_RX_PIN),
@@ -48,9 +49,9 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity, DualDr
 
 	//Timers
 	encoders_timer(&locator, &Locator::update),
+	mpu_timer(&locator, &Locator::readMPU),
 	sirene_timer(this, &Trekking::goToNextTarget),
 	tracking_regulation_timer(this, &Trekking::trackTrajectory),
-	mpu_timer(&locator, &Locator::readMPU),
 	calibrate_angle_timer(this, &Trekking::calibrateAngle)
 {
 	//Streams
