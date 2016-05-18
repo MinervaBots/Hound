@@ -342,54 +342,38 @@ void Trekking::refinedSearch() {
 	printEncodersInfo();
 	finishLogLine();
 
-	// MAX_SONAR_DISTANCE
-	// MIN_SONAR_DISTANCE
-	// MAX_LINEAR_VELOCITY and angular....
-	// These constants must be tested and defined. We must check if we
-	// would need another MAX_LINEAR/ANGULAR_VELOCITY specially for the refinedSearch
-	// or if we can use these general ones
-
+	// data
 	sonar_list.read();
-	float c,l,r;
-	c=center_sonar.getDistance();
-	l=left_sonar.getDistance();
-	r=right_sonar.getDistance();
+	float sonars[3]; // esquerda,direita,centro
+	sonars[0]=center_sonar.getDistance();
+	sonars[1]=left_sonar.getDistance();
+	sonars[2]=right_sonar.getDistance();
+	float refLinear = MAX_LINEAR_VELOCITY/2; // it's the fastest it can go and still read the sonars well
+	float minFactor = 0.5; // it's minimum linear velocity will be the reference multiplied by this factor
+	float refAngular = MAX_ANGULAR_VELOCITY/2; // it's the fastest it can go and still read the sonars well
+	float matrixW[] = {1, 0, -1};
 
-	if (c<MIN_SONAR_DISTANCE){
+	// processing
+	if (sonars[1]<=MIN_SONAR_DISTANCE){
 		operation_mode = &Trekking::lighting;
 		controlMotors(0,0,false);
 	}
-	else if (c<MAX_SONAR_DISTANCE){
-		if (c<MAX_SONAR_DISTANCE/2.5){
-			if (l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/4,0,false);
-			else if (l<MAX_SONAR_DISTANCE && r<MAX_SONAR_DISTANCE){
-				if (l>r) controlMotors(MAX_LINEAR_VELOCITY/4,MAX_ANGULAR_VELOCITY/8,false);
-				else controlMotors(MAX_LINEAR_VELOCITY/4,-MAX_ANGULAR_VELOCITY/8,false);
-			}
-			else if (r<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/4,-MAX_ANGULAR_VELOCITY/4,false);
-			else if (l<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/4,MAX_ANGULAR_VELOCITY/4,false);
-		} else {
-			if (l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/2,0,false);
-			else if (l<MAX_SONAR_DISTANCE && r<MAX_SONAR_DISTANCE){
-				if (l>r) controlMotors(MAX_LINEAR_VELOCITY/2,MAX_ANGULAR_VELOCITY/8,false);
-				else controlMotors(MAX_LINEAR_VELOCITY/2,-MAX_ANGULAR_VELOCITY/8,false);
-			}
-			else if (r<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/2,-MAX_ANGULAR_VELOCITY/4,false);
-			else if (l<MAX_SONAR_DISTANCE) controlMotors(MAX_LINEAR_VELOCITY/2,MAX_ANGULAR_VELOCITY/4,false);
+	else if (sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE && sonars[2]>MAX_SONAR_DISTANCE){
+		// WE COULD TRY TO USE THE MPU THETA DATUM TO DETERMINE TO WHICH SIDE WE SHOULD TURN!!
+		controlMotors(0,refAngular,false);
+	}
+	else{
+		float w,v;
+		for (int i=0;i<3;i++){
+			if (sonars[i]>MAX_SONAR_DISTANCE)
+				sonars[i]=0;
+			w = w + sonars[i]*matrixW[i];
+			v = v + sonars[i];
 		}
+		w = (w*refAngular)/(sonars[0]+sonars[2]);
+		v = refLinear*(exp(/*k*/-1.5*MAX_SONAR_DISTANCE/v)+minFactor); // we could add a small factor k to make it faster
+		controlMotors(v,w,false);
 	}
-	else if (r<MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY/2,-MAX_ANGULAR_VELOCITY/2,false);
-	}
-	else if (l<MAX_SONAR_DISTANCE){
-		controlMotors(MAX_LINEAR_VELOCITY/2,MAX_ANGULAR_VELOCITY/2,false);
-	}
-	else if (c>MAX_SONAR_DISTANCE && l>MAX_SONAR_DISTANCE && r>MAX_SONAR_DISTANCE){
-		controlMotors(0,MAX_ANGULAR_VELOCITY/2,false);
-		//  Perhaps it would be best to use data from the gyroscope to
-		// determine wheather to use +W or -W
-	}
-
 }
 
 void Trekking::lighting() {
