@@ -22,34 +22,36 @@ bool EncoderList::read() {
 		bool has_read = false;
 
 		while(serial->available()) {
-			has_read = true;
+
 			char incoming_char = (char) serial->read();
 
 			if(incoming_char == RESET) {
 				reset();
 			}
+			Serial.print(incoming_char);
+			// Serial.print("Fora do if: \t");
+			// Serial.print(_size);Serial.print("\t");Serial.print(i);Serial.print("\t");
+			// Serial.println(incoming_char);
 
-			if(incoming_char != TOKEN) {
+			if(incoming_char != TOKEN && incoming_char != '\n') {
 				str += incoming_char;
-			} else {
+			} else if(i < _size) {
 				//Checks if the number of encoders sent on the serial
 				//is equals to the expected
-				if(i < _size) {
-					this->get(i)->add(str.toInt());
-					str = "";
-					i ++;
-				}
+				this->get(i)->add(str.toInt());
+				str = "";
+				i ++;
+				delay(200);
 			}
+			has_read = true;
 		}
 
 		if(has_read) {
-			this->get(i)->add(str.toInt());
 			serial->println(ACKNOWLEDGEMENT);
-		}
-		// serial->print("message = ");
-		// print();
+			Serial.println();
 
-		return true;
+		}
+		return has_read;
 	}
 	return false;
 }

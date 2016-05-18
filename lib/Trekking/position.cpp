@@ -3,14 +3,13 @@
 
 //construtores
 Position::Position(){
-	Position:Position(0,0,0);
-	is_degrees = false;
+	Position(0,0,0);
 }
 
 Position::Position(float x, float y, float theta){
 	set(x,y,theta);
 }
-	
+
 //getters
 float Position::getX(){
 	return x;
@@ -56,14 +55,15 @@ void Position::setTheta(float theta){
 	// 		theta += TWO_PI;
 	// 	}
 	// }
-	
+
 	this->theta = theta;
 }
 
 float Position::distanceFrom(Position *position) {
-	return sqrt( sq((x - position->getX())) + sq(y - position->getY()) );
+	return sqrt( pow((x - position->getX()),2) + pow(y - position->getY(),2) );
 }
 
+// desired - real
 Position Position::calculateGap(Position pos){
 	float gap_x = pos.getX() - x;
 	float gap_y = pos.getY() - y;

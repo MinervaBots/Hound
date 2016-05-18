@@ -37,7 +37,7 @@ DuoDriver* driver = new DuoDriver(TX_MOTOR_PIN,
                                   ROBOCLAW_ADDRESS);
                                   //
 Trekking trekking(max_linear_vel, max_angular_vel, driver);
-Position *cone_1 = new Position(0, 10, 0);
+Position *cone_1 = new Position(10, 0, 0);
 Position *cone_2 = new Position(0, 0, 0);
 Position *cone_3 = new Position(0, 0, 0);
 // BMSerial terminal(0, 1);
@@ -65,4 +65,12 @@ void setup() {
 
 void loop() {
   trekking.update();
+  // trekking.moveForward();
+  // trekking.setLPWM(255);
+  // trekking.setRPWM(255);
+  // int testeR = driver->getRightEncoder();
+  // int testeL = driver->getLeftEncoder();
+  // Serial.print(testeR,HEX);
+  // Serial.print(testeR);Serial.print("\t");Serial.println(testeL);
+  // delay(500);
 }

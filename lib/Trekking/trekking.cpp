@@ -68,11 +68,11 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	sonar_list.addSonar(&right_sonar);
 
 	//Timers
-	mpu_timer.setInterval(READ_MPU_TIME);
-	mpu_timer.start(); //Must read the mpu all the time
+	// mpu_timer.setInterval(READ_MPU_TIME);
+	// mpu_timer.start(); //Must read the mpu all the time
 
 
-	encoders_timer.setInterval(READ_ENCODERS_TIME);
+	// encoders_timer.setInterval(READ_ENCODERS_TIME);
 	sirene_timer.setTimeout(LIGHT_DURATION);
 	// nao seria setTimeOut para comecar a fazer a funcao de transferencia?
 	// verificar fazendo diagrama de sequencia envolvendo a chamada da funcao trackTrajectory
@@ -113,7 +113,7 @@ void Trekking::addTarget(Position *target) {
 void Trekking::start() {
 	emergency();
 	//The alert led turns off when MPU is ready
-	locator.initMPU();
+	locator.start();
 
 }
 
@@ -258,9 +258,9 @@ void Trekking::trackTrajectory() {
 
 void Trekking::regulateControl() {
 	//constants to handle errors
-	const int k_rho = 1;
-	const int k_gamma = 3;
-	const int k_delta = -1;
+	const int k1 = 1;
+	const int k2 = 3;
+	const int k3 = -1;
 
 	// getting desired (final) configuration
 	Position* q_desired = targets.get(current_target_index);
@@ -269,19 +269,19 @@ void Trekking::regulateControl() {
 	Position* q_real = locator.getLastPosition();
 
 	// getting gap between configurations
-	Position gap = q_desired->calculateGap(*q_real);
+	Position gap = q_real->calculateGap(*q_desired);
 
 	//Angular transformation
 	float rho = sqrt( pow(gap.getX(),2) + pow(gap.getY(),2) );
-	float gamma = atan2(gap.getY(), gap.getX()) - q_real->getTheta();
-	float delta = -gamma - q_real->getTheta();
+	float gamma = atan2(gap.getY(), gap.getX()) + gap.getTheta();
+	float delta = gamma + gap.getTheta();
 
-	//Calculating v e w definition
-	float v = (k_rho * rho) * cos(gamma);
-	float w = (k_delta * delta + gamma) * (k_gamma * sin(gamma) * cos(gamma)/gamma);
+	//Calculating v e w
+	float v = (k1 * rho) * cos(gamma);
+	float w = k2*gamma + (k3*delta + gamma)*(k1*sin(gamma)*cos(gamma)/gamma);
 
 	controlMotors(v, w, false);
-	distance_to_target = q_real->distanceFrom(targets.get(current_target_index));
+	distance_to_target = rho;
 }
 
 
@@ -299,7 +299,7 @@ void Trekking::standby() {
 				calibrateAngle();
 				operation_mode = &Trekking::search;
 				startTimers();
-				locator.start();
+				// locator.start();
 				log.assert("operation mode", "search stage");
 			} else {
 				log.error("sensors", "sensors not working as expected");
@@ -321,11 +321,11 @@ void Trekking::search() {
 	regulateControl();
 
 	// Log for debug
-	printTime();
-	printPosition();
-	printVelocities();
-	printEncodersInfo();
-	finishLogLine();
+	// printTime();
+	// printPosition();
+	// printVelocities();
+	// printEncodersInfo();
+	// finishLogLine();
 
 	//Colocar a condicao de proximidade
 	if(distance_to_target < 0.5) {
@@ -497,8 +497,8 @@ void Trekking::resetTimers() {
 }
 
 void Trekking::updateTimers() {
-	mpu_timer.update();
-	encoders_timer.update();
+	// mpu_timer.update();
+	// encoders_timer.update();
 	sirene_timer.update();
 	tracking_regulation_timer.update();
 	calibrate_angle_timer.update();
@@ -508,6 +508,7 @@ void Trekking::updateTimers() {
 
 /*----|Private: Auxiliar functions|------------------------------------------*/
 void Trekking::loopCheck(){
+	locator.update();
 	readInputs();   //Read all the inputs
 	updateTimers(); //Update all the timers
 	current_command = ' ';

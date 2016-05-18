@@ -40,7 +40,8 @@ public:
 	byte getRPWM();
 	byte getLPWM();
 
-
+  int32_t getLeftEncoder();
+  int32_t getRightEncoder();
 
 	RoboClaw roboclaw;
 
@@ -53,6 +54,9 @@ protected:
     int input;
     byte rpwm;
     byte lpwm;
+
+    uint8_t status_right, status_left;
+    bool valid_right, valid_left;
 };
 
 #endif

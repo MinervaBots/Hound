@@ -34,13 +34,14 @@ Locator::Locator(Stream *encoder_stream, Position initial_position):
 
 Locator::~Locator() {}
 
-void Locator::initMPU() {
-	// Wire.begin();
-	MPU.init(MPU_UPDATE_RATE, MPU_MAG_MIX_GYRO_AND_MAG, MAG_UPDATE_RATE, MPU_LPF_RATE);
-}
+// void Locator::initMPU() {
+// 	// Wire.begin();
+// 	MPU.init(MPU_UPDATE_RATE, MPU_MAG_MIX_GYRO_AND_MAG, MAG_UPDATE_RATE, MPU_LPF_RATE);
+// }
 
 void Locator::start() {
 	encoder_list.start();
+	MPU.init(MPU_UPDATE_RATE, MPU_MAG_MIX_GYRO_AND_MAG, MAG_UPDATE_RATE, MPU_LPF_RATE);
 }
 
 	//getters
@@ -86,6 +87,7 @@ void Locator::readMPU() {
 
 void Locator::update() {
 	//Get the current values
+	readMPU();
 	encoder_list.read();
 	unsigned long now = millis();
 	float delta_t = now - last_update_time;
