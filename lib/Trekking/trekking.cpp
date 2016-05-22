@@ -56,6 +56,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	calibrate_angle_timer(this, &Trekking::calibrateAngle)
 {
 	//Streams
+	operation_mode_switch = MANUAL_MODE;
 	command_stream = &Serial; //bluetooth on Serial1
 	log_stream = &Serial;
 
@@ -180,7 +181,6 @@ Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long temp
 }
 
 void Trekking::controlMotors(float v, float w, bool enable_pid){
-	// Serial.println("controling motors");
 	// v velocity in m/s and w the angle in rad/s
 
 	//Calculating rps
@@ -188,8 +188,7 @@ void Trekking::controlMotors(float v, float w, bool enable_pid){
 	float l_desired_vel = (v - w*DISTANCE_FROM_RX)*(2*PI)/WHEEL_RADIUS; //[RPS]
 
 	//PID
-	float right_vel = 0;
-	float left_vel = 0;
+	float right_vel, left_vel = 0;
 	if(enable_pid){
 		l_pwm = l_rotations_per_sec*255/MAX_PPS;
 		r_pwm = l_rotations_per_sec*255/MAX_PPS;
@@ -284,18 +283,19 @@ void Trekking::regulateControl() {
 
 /*----|Private: Position update related functions|---------------------------*/
 void Trekking::updatePosition(){
-	float delta_t = millis() - last_update_time;
+	control_clk.update();
+	float delta_t = control_clk.getElapsedTime() - last_update_time;
 	float dT = delta_t / 1000.0;
 
 	//Get the current orientation and speeds
 	readMPU();
 	updateSpeeds();
-	float theta = euler_radians[2] - initial_euler_radians;
+	float theta = euler_radians[2] - initial_euler_radians; //in rad
 	float linear_speed = getLinearSpeed();
 
 	//Calculating new position
-	float x = current_position.getX() + linear_speed*cos(theta)*dT;//angulo em radiano
-	float y = current_position.getY() + linear_speed*sin(theta)*dT;//angulo em radiano
+	float x = current_position.getX() + linear_speed*cos(theta)*dT;
+	float y = current_position.getY() + linear_speed*sin(theta)*dT;
 
 	//Update values
 	current_position.set(x, y, theta);
@@ -304,9 +304,6 @@ void Trekking::updatePosition(){
 }
 
 void Trekking::resetPosition(Position new_position){
-	// encoder_list.reset();
-	// mpu_first_time = true;
-
 	l_rotations_per_sec = 0;
 	r_rotations_per_sec = 0;
 
@@ -379,11 +376,11 @@ void Trekking::search() {
 	regulateControl();
 
 	// Log for debug
-	// printTime();
-	// printPosition();
-	// printVelocities();
-	// printEncodersInfo();
-	// finishLogLine();
+	printTime();
+	printPosition();
+	printVelocities();
+	printEncodersInfo();
+	finishLogLine();
 
 	//Colocar a condicao de proximidade
 	if(distance_to_target < 0.5) {
@@ -421,12 +418,11 @@ void Trekking::refinedSearch() {
 		controlMotors(0,refAngular,false);
 	}
 	else{
-		float w,v;
+		float w,v = 0;
 		for (int i=0;i<3;i++){
-			if (sonars[i]>MAX_SONAR_DISTANCE)
-				sonars[i]=0;
-			w = w + sonars[i]*matrixW[i];
-			v = v + sonars[i];
+			if (sonars[i]>MAX_SONAR_DISTANCE){sonars[i]=0;}
+			w += sonars[i]*matrixW[i];
+			v += sonars[i];
 		}
 		w = (w*refAngular)/(sonars[0]+sonars[2]);
 		v = refLinear*(exp(/*k*/-1.5*MAX_SONAR_DISTANCE/v)+minFactor); // we could add a small factor k to make it faster
@@ -529,8 +525,6 @@ void Trekking::resetTimers() {
 }
 
 void Trekking::updateTimers() {
-	// mpu_timer.update();
-	// encoders_timer.update();
 	sirene_timer.update();
 	tracking_regulation_timer.update();
 	calibrate_angle_timer.update();
@@ -580,14 +574,14 @@ void Trekking::debug() {
 		stopTimers();
 	} else if(current_command == 'e') {
 		log.debug("debug command", "set to search");
-		// operation_mode = &Trekking::search;
-		operation_mode_switch = AUTO_MODE;
+		operation_mode = &Trekking::search;
+		// operation_mode_switch = AUTO_MODE;
 		init_button = true;
 		is_tracking = false;
 		standby();
 	} else if(current_command == 'f') {
 		log.debug("debug command", "set to refined search");
-		operation_mode_switch = AUTO_MODE;
+		// operation_mode_switch = AUTO_MODE;
 		operation_mode = &Trekking::refinedSearch;
 
 	} else if(current_command == 'l') {
