@@ -110,11 +110,18 @@ byte DuoDriver::getLPWM()
     return lpwm;
 }
 
-// colocamos aqui mesmo?
 int32_t DuoDriver::getRightEncoder(){
-  return roboclaw.ReadSpeedM1(input, &status_right, &valid_right);
+  return roboclaw.ReadEncM1(input, &status_right, &valid_right);
 }
 
 int32_t DuoDriver::getLeftEncoder(){
+  return roboclaw.ReadEncM2(input, &status_left, &valid_left);
+}
+
+int32_t DuoDriver::getRightPPS(){
+  return roboclaw.ReadSpeedM1(input, &status_right, &valid_right);
+}
+
+int32_t DuoDriver::getLeftPPS(){
   return roboclaw.ReadSpeedM2(input, &status_left, &valid_left);
 }

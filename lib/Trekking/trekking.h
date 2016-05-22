@@ -4,21 +4,32 @@
 #include "../Log/log.h"
 #include "../XLMaxSonarEZ/sonarlist.h"
 #include "../Robot/Robot.h"
-// #include "../Timer/timer.h"
+#include "../Timer/timer.h"
 #include "trekkingpins.h"
 #include "trekkingmath.h"
 #include "position.h"
-#include "locator.h"
 #include "PIDControler.h"
 #include "../Robot/DualDriver.h"
 #include "DuoDriver.h"
 
+#include "../I2CDev/I2Cdev.h"
+#include "../MPU9150Lib/MPU9150Lib.h"
+#include "../CalLib/CalLib.h"
+#include <dmpKey.h>
+#include <dmpmap.h>
+#include <inv_mpu.h>
+#include <inv_mpu_dmp_motion_driver.h>
+
 #define LIGHT_ON 		'l'
 #define LIGHT_OFF 		'o'
 
+#ifndef PI
+#define PI 3.141592653589793238;
+#endif
+
 class Trekking : public Robot{
 public:
-	Trekking(float max_linear_velocity, float max_angular_velocity, DualDriver* driver);
+	Trekking(float max_linear_velocity, float max_angular_velocity, DuoDriver* driver);
 	~Trekking();
 
 	void addTarget(Position *target);
@@ -33,6 +44,13 @@ public:
 
 
 private:
+	const float GEAR_RATE;
+	const float PULSES_PER_ROTATION;
+	const float WHEEL_RADIUS;
+	const float MAX_PPS;
+	const float DISTANCE_FROM_RX; // = distancia entre a roda e o eixo sagital do robo
+
+
 	//Velocities
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
@@ -49,6 +67,11 @@ private:
 	const int COMMAND_BAUD_RATE;
 	const int LOG_BAUD_RATE;
 	const int ENCODER_BAUD_RATE;
+
+	const int MPU_UPDATE_RATE; //defines the rate (in Hz) at which the MPU updates the magnetometer data
+	const int MAG_UPDATE_RATE; // should be less than or equal to the MPU_UPDATE_RATE
+	const int MPU_LPF_RATE; // is the low pas filter rate and can be between 5 and 188Hz
+	const int  MPU_MAG_MIX_GYRO_AND_MAG;
 
 	const int LIGHT_DURATION;
 	const float PROXIMITY_RADIUS;
@@ -88,25 +111,21 @@ private:
 
 	float distance_to_target;
 
+	DuoDriver *driver;
 
 	Log log;
-	// Kalman kalman;
-	// Radio radio;
 
-	//Holds witch is the serial stream to receive
-	//the commands
+	//Holds witch is the serial stream to receive the commands
 	Stream *command_stream;
 	Stream *log_stream;
 	Stream *encoder_stream;
 
-	Locator locator;
-
 	//Timers
-	TimerForMethods<Locator> encoders_timer;
-	TimerForMethods<Locator> mpu_timer;
+	TimerForMethods<Trekking> mpu_timer;
 	TimerForMethods<Trekking> sirene_timer;
 	TimerForMethods<Trekking> tracking_regulation_timer;
 	TimerForMethods<Trekking> calibrate_angle_timer;
+	Timer control_clk;
 
 	float kp_right, ki_right, kd_right, bsp_right;
 	float kp_left, ki_left, kd_left, bsp_left;
@@ -115,12 +134,35 @@ private:
 	float left_vel_ref, right_vel_ref;
 	float pid_convertion_const;
 
+	float euler_radians[3];
+	float initial_euler_radians;
+	MPU9150Lib MPU;
+	bool mpu_first_time;
+
+	float l_rotations_per_sec, r_rotations_per_sec;
+	Position current_position;
+	unsigned long last_update_time;
+
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
 	void controlMotors(float v, float w, bool enable_pid);
 	void trackTrajectory();
 	void regulateControl();
+
+	/*----|Position update related functions|--------------------------------*/
+	void updatePosition();
+	void resetPosition(Position new_position);
+	void readMPU();
+	void updateSpeeds();
+	float ppsToRps(int32_t pps);
+	float getRightSpeed();
+	float getLeftSpeed();
+	float getLinearSpeed();
+	float getAngularSpeed();
+	float getLastUpdateTime();
+
+
 
 	/*----|Operation modes|--------------------------------------------------*/
 	void standby();

@@ -1,16 +1,14 @@
 #include "trekking.h"
-#include "trekkingpins.h"
-#include "../Robot/robot.h"
-
-#define ONEINPUT
-/* In order to use the driver with two control signals, comment the line above
-in this file, as well as duodriver.h. Don't forget to adjust
-the pins! */
-
 
 /*----|Public|---------------------------------------------------------------*/
 Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
-	DualDriver* driver_pointer):Robot(driver_pointer),
+	DuoDriver* driver_pointer):Robot(driver_pointer),
+
+	GEAR_RATE(19),
+	PULSES_PER_ROTATION(64),
+	WHEEL_RADIUS(0.075),
+	MAX_PPS(10133.33), // = GEAR_RATE * MAX_RPM/60 * POINTS = 19 * (500/60) * 64
+	DISTANCE_FROM_RX(0.1375), // 137.5mm
 
 	//Velocities
 	MAX_LINEAR_VELOCITY(max_linear_velocity),
@@ -23,11 +21,16 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	//Motors
 	MAX_MOTOR_PWM(130),
 	MIN_MOTOR_PWM(100),
-	MAX_RPS(3000),
+	MAX_RPS(8.33),
 
 	COMMAND_BAUD_RATE(9600),
 	LOG_BAUD_RATE(9600),
 	ENCODER_BAUD_RATE(57600),
+
+	MPU_UPDATE_RATE(20),
+	MAG_UPDATE_RATE(10),
+	MPU_LPF_RATE(40),
+	MPU_MAG_MIX_GYRO_AND_MAG(10),
 
 	LIGHT_DURATION(3000),
 	PROXIMITY_RADIUS(3.0),
@@ -45,11 +48,9 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	targets(),
 	init_position(),
 	encoder_stream(&Serial2),
-	locator(encoder_stream, Position(0,0,0)),
 
 	//Timers
-	encoders_timer(&locator, &Locator::update),
-	mpu_timer(&locator, &Locator::readMPU),
+	mpu_timer(this, &Trekking::readMPU),
 	sirene_timer(this, &Trekking::goToNextTarget),
 	tracking_regulation_timer(this, &Trekking::trackTrajectory),
 	calibrate_angle_timer(this, &Trekking::calibrateAngle)
@@ -71,6 +72,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	// mpu_timer.setInterval(READ_MPU_TIME);
 	// mpu_timer.start(); //Must read the mpu all the time
 
+	resetPosition(Position(0,0,0));
 
 	// encoders_timer.setInterval(READ_ENCODERS_TIME);
 	sirene_timer.setTimeout(LIGHT_DURATION);
@@ -90,6 +92,7 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	right_pid.Init(kp_right, kd_right, ki_right, bsp_right);
 	left_pid.Init(kp_left, kd_left, ki_left, bsp_left);
 
+	driver = driver_pointer;
 	// reset();
 }
 
@@ -112,9 +115,10 @@ void Trekking::addTarget(Position *target) {
 
 void Trekking::start() {
 	emergency();
+	control_clk.start();
 	//The alert led turns off when MPU is ready
-	locator.start();
-
+	MPU.init(MPU_UPDATE_RATE, MPU_MAG_MIX_GYRO_AND_MAG,
+		MAG_UPDATE_RATE, MPU_LPF_RATE);
 }
 
 void Trekking::update() {
@@ -133,7 +137,6 @@ void Trekking::emergency() {
 
 /*----|Private: Matlab related functions|------------------------------------*/
 Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long tempo){
-	// 	Position* trekking_position = locator.getLastPosition();
 	Position* destination = targets.get(current_target_index);
 	Position planned_position = Position();
 	float t = (float) tempo;
@@ -188,11 +191,10 @@ void Trekking::controlMotors(float v, float w, bool enable_pid){
 	float right_vel = 0;
 	float left_vel = 0;
 	if(enable_pid){
-		right_vel = floor(right_pid.run(
-			abs(r_desired_vel), locator.getRightSpeed() ));
-
-		left_vel = floor(left_pid.run(
-			abs(l_desired_vel), locator.getLeftSpeed() ));
+		l_pwm = l_rotations_per_sec*255/MAX_PPS;
+		r_pwm = l_rotations_per_sec*255/MAX_PPS;
+		right_vel = floor(right_pid.run(abs(r_desired_vel), r_pwm));
+		left_vel = floor(left_pid.run(abs(l_desired_vel), l_pwm));
 	}
 	else {
 		right_vel = r_desired_vel;
@@ -232,18 +234,17 @@ void Trekking::trackTrajectory() {
 	const int k2 = 1;
 	const int k3 = 2;
 
-	Position* trekking_position = locator.getLastPosition();
 	unsigned long t = tracking_regulation_timer.getElapsedTime();
-	Position gap = trekking_position->calculateGap(plannedPosition(linear, t));
+	Position gap = current_position.calculateGap(plannedPosition(linear, t));
 
 	//Angular transformation
 	float e1 = gap.getX();
-	e1 *= cos(trekking_position->getTheta());
-	e1 += gap.getY()*sin(trekking_position->getTheta());
+	e1 *= cos(current_position.getTheta());
+	e1 += gap.getY()*sin(current_position.getTheta());
 
 	float e2 = -gap.getX();
-	e2 *= sin(trekking_position->getTheta());
-	e2 += gap.getY()*cos(trekking_position->getTheta());
+	e2 *= sin(current_position.getTheta());
+	e2 += gap.getY()*cos(current_position.getTheta());
 	float e3 = gap.getTheta();
 
 	//Calculating linear velocity and angular velocity
@@ -251,10 +252,9 @@ void Trekking::trackTrajectory() {
 	float w = desired_angular_velocity + k2*e2 + k3*e3;
 
 	controlMotors(v, w, true);
-	distance_to_target = trekking_position->distanceFrom(targets.get(current_target_index));
+	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
 
 }
-
 
 void Trekking::regulateControl() {
 	//constants to handle errors
@@ -265,11 +265,8 @@ void Trekking::regulateControl() {
 	// getting desired (final) configuration
 	Position* q_desired = targets.get(current_target_index);
 
-	// getting real (current) configuration
-	Position* q_real = locator.getLastPosition();
-
 	// getting gap between configurations
-	Position gap = q_real->calculateGap(*q_desired);
+	Position gap = current_position.calculateGap(*q_desired);
 
 	//Angular transformation
 	float rho = sqrt( pow(gap.getX(),2) + pow(gap.getY(),2) );
@@ -285,6 +282,68 @@ void Trekking::regulateControl() {
 }
 
 
+/*----|Private: Position update related functions|---------------------------*/
+void Trekking::updatePosition(){
+	float delta_t = millis() - last_update_time;
+	float dT = delta_t / 1000.0;
+
+	//Get the current orientation and speeds
+	readMPU();
+	updateSpeeds();
+	float theta = euler_radians[2] - initial_euler_radians;
+	float linear_speed = getLinearSpeed();
+
+	//Calculating new position
+	float x = current_position.getX() + linear_speed*cos(theta)*dT;//angulo em radiano
+	float y = current_position.getY() + linear_speed*sin(theta)*dT;//angulo em radiano
+
+	//Update values
+	current_position.set(x, y, theta);
+
+	last_update_time = control_clk.getElapsedTime();
+}
+
+void Trekking::resetPosition(Position new_position){
+	// encoder_list.reset();
+	// mpu_first_time = true;
+
+	l_rotations_per_sec = 0;
+	r_rotations_per_sec = 0;
+
+	current_position = new_position;
+	control_clk.reset();
+}
+
+void Trekking::readMPU(){
+	if(MPU.read()) {
+		euler_radians[0] = MPU.m_dmpEulerPose[0];
+		euler_radians[1] = MPU.m_dmpEulerPose[1];
+		euler_radians[2] = MPU.m_dmpEulerPose[2];
+	}
+}
+
+void Trekking::updateSpeeds(){
+	l_rotations_per_sec = ppsToRps(driver->getLeftPPS());
+	r_rotations_per_sec = ppsToRps(driver->getRightPPS());
+}
+
+//Pulses per Sec --> Rotaion Per Sec
+float Trekking::ppsToRps(int32_t pps){
+	// max_rps = max_pps/(PULSES_PER_ROTATION*GEAR_RATE) = 8.33 rps
+	return pps/(PULSES_PER_ROTATION*GEAR_RATE);
+}
+
+float Trekking::getLinearSpeed(){
+	// Linear Speed = (R)*(r_speed + l_speed)/2,
+	// where r_speed and l_speed are in [ROTATIONS PER SEC]
+	return (WHEEL_RADIUS)*(r_rotations_per_sec + l_rotations_per_sec)/2; // [m/s]
+}
+
+float Trekking::getAngularSpeed(){
+	// Angular Speed = (R)*(r_speed - l_speed)/(2L),
+	// where r_speed and l_speed are in [ROTATIONS PER SEC]
+	return (WHEEL_RADIUS)*(r_rotations_per_sec - l_rotations_per_sec)/(2*DISTANCE_FROM_RX); // 1/s
+}
 
 
 /*----|Private: Operations modes|--------------------------------------------*/
@@ -299,7 +358,6 @@ void Trekking::standby() {
 				calibrateAngle();
 				operation_mode = &Trekking::search;
 				startTimers();
-				// locator.start();
 				log.assert("operation mode", "search stage");
 			} else {
 				log.error("sensors", "sensors not working as expected");
@@ -403,6 +461,14 @@ void Trekking::goToNextTarget() {
 void Trekking::reset() {
 	log.assert("reset", "resetting...");
 
+	Robot::stop();
+	resetPosition(init_position);
+	right_pid.reset();
+	left_pid.reset();
+	stopTimers();
+	resetTimers();
+	turnOffSirene();
+
 	//Trekking variables
 	desired_linear_velocity = 0;
 	desired_angular_velocity = 0;
@@ -412,7 +478,7 @@ void Trekking::reset() {
 	is_aligned = false;
 	is_tracking = false;
 	current_target_index = 0;
-	distance_to_target = locator.getLastPosition()->distanceFrom(targets.get(current_target_index));
+	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
 	left_vel_ref = 0;
 	right_vel_ref = 0;
 
@@ -420,22 +486,7 @@ void Trekking::reset() {
 	operation_mode = &Trekking::standby;
 	log.assert("operation mode", "standby");
 
-	//Trekking objects
-	Position initial_position(0,0,0);
-	locator.reset(initial_position);
-	Robot::setPWM(MAX_MOTOR_PWM, MAX_MOTOR_PWM);
-	Robot::stop();
-
-	right_pid.reset();
-	left_pid.reset();
-
-	//Trekking methods
-	stopTimers();
-	resetTimers();
-	turnOffSirene();
-
 	log.assert("reset", "done.");
-
 	readInputs();
 }
 
@@ -464,18 +515,15 @@ void Trekking::turnOffSirene() {
 
 /*----|Private: Timer functions|---------------------------------------------*/
 void Trekking::startTimers() {
-	encoders_timer.start();
-	// sirene_timer.start();
+	sirene_timer.start();
 }
 
 void Trekking::stopTimers() {
-	encoders_timer.stop();
 	sirene_timer.stop();
 	tracking_regulation_timer.stop();
 }
 
 void Trekking::resetTimers() {
-	encoders_timer.reset();
 	sirene_timer.reset();
 	tracking_regulation_timer.reset();
 }
@@ -492,7 +540,7 @@ void Trekking::updateTimers() {
 
 /*----|Private: Auxiliar functions|------------------------------------------*/
 void Trekking::loopCheck(){
-	locator.update();
+	updatePosition();
 	readInputs();   //Read all the inputs
 	updateTimers(); //Update all the timers
 	current_command = ' ';
@@ -517,12 +565,12 @@ void Trekking::loopCheck(){
 bool Trekking::checkSensors() {return true;}
 
 void Trekking::calibrateAngle() {
-	locator.initial_euler_radians = locator.euler_radians[2];
-	locator.getLastPosition()->setTheta(locator.euler_radians[2]);
+	initial_euler_radians = euler_radians[2];
+	current_position.setTheta(euler_radians[2]);
 	digitalWrite(ALERT_LED, LOW);
 
 	Serial.print("Calibrated angle = ");
-	Serial.println(locator.initial_euler_radians);
+	Serial.println(initial_euler_radians);
 }
 
 void Trekking::debug() {
@@ -559,13 +607,11 @@ void Trekking::debug() {
 		turnOffSirene();
 	} else if(current_command == 'n') {
 		log.debug("debug command", "print encoders");
-		for(int i = 0; i < locator.encoder_list.size(); i++) {
-			Serial.print(locator.encoder_list.get(i)->getPulses());
-			Serial.print("\t");
-		}
-		Serial.println();
+		log <<	'\t' << driver->getLeftEncoder();
+		log <<	'\t' << driver->getRightEncoder();
+		log << log_endl;
 	} else if(current_command == 'p') {
-		log.debug("debug command", "print locator");
+		log.debug("debug command", "print position");
 		log << DEBUG << "\tx\ty\tTheta\t\tlinear\tangular\ttime" << log_endl;
 		printPosition();
 		printVelocities();
@@ -603,29 +649,28 @@ void Trekking::printSonarInfo()
 
 void Trekking::printEncodersInfo()
 {
-	for(int i = 0; i < locator.encoder_list.size(); i++) {
-		log << '\t' << locator.encoder_list.get(i)->getPulses();
-	}
+	log << '\t' << driver->getLeftEncoder();
+	log << '\t' << driver->getRightEncoder();
 	log << '\t';
 }
 
 void Trekking::printMPUInfo()
 {
-	log << '\t' << locator.euler_radians[0]*180/PI;
-	log << '\t' << locator.euler_radians[1]*180/PI;
-	log << '\t' << locator.euler_radians[2]*180/PI << '\t';
+	log << '\t' << euler_radians[0]*180/PI;
+	log << '\t' << euler_radians[1]*180/PI;
+	log << '\t' << euler_radians[2]*180/PI << '\t';
 }
 
 void Trekking::printPosition(){
-	log << '\t' << locator.getLastPosition()->getX();
-	log << '\t' << locator.getLastPosition()->getY();
-	log << '\t' << locator.getLastPosition()->getTheta() << '\t';
+	log << '\t' << current_position.getX();
+	log << '\t' << current_position.getY();
+	log << '\t' << current_position.getTheta() << '\t';
 }
 
 void Trekking::printVelocities()
 {
-	log << '\t' << locator.getRobotLinearSpeed();
-	log << '\t' << locator.getRobotAngularSpeed() << '\t';
+	log << '\t' << getLinearSpeed();
+	log << '\t' << getAngularSpeed() << '\t';
 }
 
 void Trekking::finishLogLine()
@@ -635,7 +680,7 @@ void Trekking::finishLogLine()
 
 void Trekking::printTime()
 {
-	log << '\t' << locator.getLastUpdateTime() << '\t';
+	log << '\t' << control_clk.getElapsedTime() << '\t';
 }
 
 /*----|Public: Test related functions
@@ -656,12 +701,11 @@ void Trekking::goStraightWithControl(float meters){
 	log << DEBUG << "" << log_endl;
 	log << "\t" << t;
 
-	Position* trekking_position = locator.getLastPosition();
 	Position* destination = targets.get(current_target_index);
 	destination->set(meters, 0.0, 0.0);
 
 	Position planned_position = plannedPosition(true, t);
-	Position gap = trekking_position->calculateGap(planned_position);
+	Position gap = current_position.calculateGap(planned_position);
 
 	if(!is_tracking) {
 		log.debug("Search", "starting tracking timer");

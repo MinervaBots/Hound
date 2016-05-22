@@ -43,6 +43,9 @@ public:
   int32_t getLeftEncoder();
   int32_t getRightEncoder();
 
+  int32_t getLeftPPS();
+  int32_t getRightPPS();
+
 	RoboClaw roboclaw;
 
 protected:
