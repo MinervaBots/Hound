@@ -498,12 +498,12 @@ void Trekking::readInputs() {
 }
 
 void Trekking::turnOnSirene() {
-	encoder_stream->println(LIGHT_ON);
+	digitalWrite(SIRENE_PIN,HIGH);
 	sirene_is_on = true;
 }
 
 void Trekking::turnOffSirene() {
-	encoder_stream->println(LIGHT_OFF);
+	digitalWrite(SIRENE_PIN,LOW);
 	sirene_is_on = false;
 }
 

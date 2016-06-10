@@ -36,7 +36,7 @@ const byte RIGHT_SONAR_TX_PIN = A7;
 /*
 	Sirene
 */
-// const byte SIRENE_PIN = 12;
+const byte SIRENE_PIN = 12;
 
 /*
 	Alert led

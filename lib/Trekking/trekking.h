@@ -20,8 +20,6 @@
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
 
-#define LIGHT_ON 		'l'
-#define LIGHT_OFF 		'o'
 
 #ifndef PI
 #define PI 3.141592653589793238;
