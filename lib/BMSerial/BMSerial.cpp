@@ -1,11 +1,11 @@
 /*
-Modified version of SoftwareSerial.cpp (formerly NewSoftSerial.cpp) - 
+Modified version of SoftwareSerial.cpp (formerly NewSoftSerial.cpp) -
 Multi-instance software serial library for Arduino/Wiring
 -- Interrupt-driven receive and other improvements by ladyada
    (http://ladyada.net)
 -- Tuning, circular buffer, derivation from class Print/Stream,
    multi-instance support, porting to 8MHz processors,
-   various optimizations, PROGMEM delay tables, inverse logic and 
+   various optimizations, PROGMEM delay tables, inverse logic and
    direct port writing by Mikal Hart (http://www.arduiniana.org)
 -- Pin change interrupt macros by Paul Stoffregen (http://www.pjrc.com)
 -- 20MHz processor support by Garrett Mace (http://www.macetech.com)
@@ -44,12 +44,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "Arduino.h"
 #include "BMSerial.h"
 
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
 	#include <avr/interrupt.h>
 	#include <avr/pgmspace.h>
 #endif
 
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
 #if defined(UBRRH) || defined(UBRR0H)
 	#define _BMSERIAL0
 #endif
@@ -84,7 +84,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define _TX0 1
 #define _RX0 0
 
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
 
 //
 // Lookup table
@@ -100,7 +100,7 @@ typedef struct _DELAY_TABLE
 
 #if F_CPU == 16000000
 
-static const DELAY_TABLE PROGMEM table[] = 
+static const DELAY_TABLE PROGMEM table[] =
 {
   //  baud    rxcenter   rxintra    rxstop    tx
   { 115200,   0,         17,        8,       12,    },
@@ -134,7 +134,7 @@ const int XMIT_START_ADJUSTMENT = 5;
 
 #elif F_CPU == 8000000
 
-static const DELAY_TABLE table[] PROGMEM = 
+static const DELAY_TABLE table[] PROGMEM =
 {
   //  baud    rxcenter    rxintra    rxstop  tx
   { 115200,   1,          5,         2,      3,      },
@@ -189,7 +189,7 @@ const int XMIT_START_ADJUSTMENT = 6;
 // Statics
 //
 BMSerial *BMSerial::active_object = 0;
-char BMSerial::_receive_buffer[_SS_MAX_RX_BUFF]; 
+char BMSerial::_receive_buffer[_SS_MAX_RX_BUFF];
 volatile uint8_t BMSerial::_receive_buffer_tail = 0;
 volatile uint8_t BMSerial::_receive_buffer_head = 0;
 
@@ -216,12 +216,12 @@ inline void DebugPulse(uint8_t pin, uint8_t count)
 // Private methods
 //
 
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
 
-/* static */ 
-inline void BMSerial::tunedDelay(uint16_t delay) { 
+/* static */
+inline void BMSerial::tunedDelay(uint16_t delay) {
 	uint8_t tmp=0;
-	
+
 	asm volatile("sbiw    %0, 0x01 \n\t"
 	  "ldi %1, 0xFF \n\t"
 	  "cpi %A0, 0xFF \n\t"
@@ -235,10 +235,10 @@ inline void BMSerial::tunedDelay(uint16_t delay) {
 #endif
 
 // This function sets the current object as the "listening"
-// one and returns true if it replaces another 
+// one and returns true if it replaces another
 bool BMSerial::listen()
 {
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
   if (active_object != this)
   {
     _buffer_overflow = false;
@@ -256,7 +256,7 @@ bool BMSerial::listen()
 #endif
 }
 
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
 
 //
 // The receive routine called by the interrupt handler
@@ -278,7 +278,7 @@ void BMSerial::recv()
     "push r26 \n\t"
     "push r27 \n\t"
     ::);
-#endif  
+#endif
 
   uint8_t d = 0;
 
@@ -314,13 +314,13 @@ void BMSerial::recv()
       d = ~d;
 
     // if buffer full, set the overflow flag and return
-    if ((_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF != _receive_buffer_head) 
+    if ((_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF != _receive_buffer_head)
     {
       // save new data in buffer: tail points to where byte goes
       _receive_buffer[_receive_buffer_tail] = d; // save new byte
       _receive_buffer_tail = (_receive_buffer_tail + 1) % _SS_MAX_RX_BUFF;
-    } 
-    else 
+    }
+    else
     {
 #if _DEBUG // for scope: pulse pin as overflow indictator
       DebugPulse(_DEBUG_PIN1, 1);
@@ -365,7 +365,7 @@ int8_t BMSerial::bintoint(uint8_t c)
 	if (c >= '0' && c <= '1') {
 	  return c - '0';
 	} else {
-	  return -1;    
+	  return -1;
 	}
 }
 
@@ -374,7 +374,7 @@ int8_t BMSerial::dectoint(uint8_t c)
 	if (c >= '0' && c <= '9') {
 	  return c - '0';
 	} else {
-	  return -1;    
+	  return -1;
 	}
 }
 
@@ -387,7 +387,7 @@ int8_t BMSerial::hextoint(uint8_t c)
 	} else if (c >= 'A' && c <= 'F') {
 	  return c - 'A' + 10;
 	} else {
-	  return -1;    
+	  return -1;
 	}
 }
 
@@ -395,7 +395,7 @@ int8_t BMSerial::hextoint(uint8_t c)
 // Interrupt handling
 //
 
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
 
 /* static */
 inline void BMSerial::handle_interrupt()
@@ -406,26 +406,26 @@ inline void BMSerial::handle_interrupt()
   }
 }
 
-#if defined(PCINT0_vect)
-ISR(PCINT0_vect)
-{
-  BMSerial::handle_interrupt();
-}
-#endif
+// #if defined(PCINT0_vect)
+// ISR(PCINT0_vect)
+// {
+//   BMSerial::handle_interrupt();
+// }
+// #endif
 
-#if defined(PCINT1_vect)
-ISR(PCINT1_vect)
-{
-  BMSerial::handle_interrupt();
-}
-#endif
+// #if defined(PCINT1_vect)
+// ISR(PCINT1_vect)
+// {
+//   BMSerial::handle_interrupt();
+// }
+// #endif
 
-#if defined(PCINT2_vect)
-ISR(PCINT2_vect)
-{
-  BMSerial::handle_interrupt();
-}
-#endif
+// #if defined(PCINT2_vect)
+// ISR(PCINT2_vect)
+// {
+//   BMSerial::handle_interrupt();
+// }
+// #endif
 
 #if defined(PCINT3_vect)
 ISR(PCINT3_vect)
@@ -439,7 +439,7 @@ ISR(PCINT3_vect)
 //
 // Constructor
 //
-BMSerial::BMSerial(uint8_t receivePin, uint8_t transmitPin, bool inverse_logic /* = false */) : 
+BMSerial::BMSerial(uint8_t receivePin, uint8_t transmitPin, bool inverse_logic /* = false */) :
 	_rx_delay_centering(0),
 	_rx_delay_intrabit(0),
 	_rx_delay_stopbit(0),
@@ -477,7 +477,7 @@ void BMSerial::setTXRX(uint8_t tx,uint8_t rx)
 	_transmitPin = tx;
 	_receivePin = rx;
 
-#ifndef USB_PID_DUE 
+#ifndef USB_PID_DUE
 	_transmitBitMask = digitalPinToBitMask(tx);
 	uint8_t port = digitalPinToPort(tx);
 	_transmitPortRegister = portOutputRegister(port);
@@ -520,10 +520,10 @@ void BMSerial::begin(long speed)
 		return;
 	}
 #endif
-	
-#ifndef USB_PID_DUE 
+
+#ifndef USB_PID_DUE
 	_rx_delay_centering = _rx_delay_intrabit = _rx_delay_stopbit = _tx_delay = 0;
-	
+
 	for (unsigned i=0; i<sizeof(table)/sizeof(table[0]); ++i)
 	{
 	  long baud = pgm_read_dword(&table[i].baud);
@@ -536,7 +536,7 @@ void BMSerial::begin(long speed)
 	    break;
 	  }
 	}
-	
+
 	// Set up RX interrupts, but only if we have a valid RX baud rate
 	if (_rx_delay_stopbit)
 	{
@@ -586,8 +586,8 @@ void BMSerial::end()
 		return;
 	}
 #endif
-	
-#ifndef USB_PID_DUE 
+
+#ifndef USB_PID_DUE
 	if (digitalPinToPCMSK(_receivePin))
 		*digitalPinToPCMSK(_receivePin) &= ~_BV(digitalPinToPCMSKbit(_receivePin));
 #endif
@@ -649,8 +649,8 @@ int16_t BMSerial::read(uint32_t timeout)
 		return Serial3.read();
 	}
 #endif
-	
-#ifndef USB_PID_DUE 
+
+#ifndef USB_PID_DUE
 	if (!is_listening())
 		return -1;
 
@@ -696,8 +696,8 @@ int BMSerial::available()
 		return Serial3.available();
 	}
 #endif
-	
-#ifndef USB_PID_DUE 
+
+#ifndef USB_PID_DUE
 	if (!is_listening())
 		return 0;
 
@@ -712,7 +712,7 @@ uint32_t BMSerial::readdec(uint32_t timeout,bool ignoreleading)
 {
 	uint32_t data=0;
 	uint16_t index=0;
-	
+
 	do{
 		int16_t c = read(timeout);
 		if(c==-1)
@@ -726,7 +726,7 @@ uint32_t BMSerial::readdec(uint32_t timeout,bool ignoreleading)
 		if(!ignoreleading){
 			data*=10;
 			data+=i;
-		}	
+		}
 	}while(1);
 }
 
@@ -734,7 +734,7 @@ uint32_t BMSerial::readhex(uint32_t timeout,bool ignoreleading)
 {
 	uint32_t data=0;
 	uint16_t index=0;
-	
+
 	do{
 		int16_t c = read(timeout);
 		if(c==-1)
@@ -748,7 +748,7 @@ uint32_t BMSerial::readhex(uint32_t timeout,bool ignoreleading)
 		if(!ignoreleading){
 			data<<=4;
 			data|=i;
-		}	
+		}
 	}while(1);
 }
 
@@ -756,7 +756,7 @@ uint32_t BMSerial::readbin(uint32_t timeout,bool ignoreleading)
 {
 	uint32_t data=0;
 	uint16_t index=0;
-	
+
 	do{
 		int16_t c = read(timeout);
 		if(c==-1)
@@ -770,14 +770,14 @@ uint32_t BMSerial::readbin(uint32_t timeout,bool ignoreleading)
 		if(!ignoreleading){
 			data<<=1;
 			data|=i;
-		}	
+		}
 	}while(1);
 }
 
 uint16_t BMSerial::readln(char *data,uint32_t timeout)
 {
 	uint16_t index=0;
-	
+
 	do{
 		int16_t c = read(timeout);
 		if(c==-1){
@@ -816,7 +816,7 @@ int16_t BMSerial::read()
 		return Serial3.read();
 	}
 #endif
-	
+
 	return read(0);
 }
 
@@ -844,24 +844,24 @@ size_t BMSerial::write(uint8_t b)
 		return Serial3.write(b);
 	}
 #endif
-	
-#ifndef USB_PID_DUE 
+
+#ifndef USB_PID_DUE
 	if (_tx_delay == 0)
 	  return 0;
-	
+
 	if(_transmitPin==_receivePin){
 		*_transmitModeRegister|=_transmitBitMask;
 		if (!_inverse_logic)
 			*_transmitPortRegister|=_transmitBitMask;
 	}
-	
+
 	uint8_t oldSREG = SREG;
 	cli();  // turn off interrupts for a clean txmit
 
 	// Write the start bit
 	tx_pin_write(_inverse_logic ? HIGH : LOW);
 	tunedDelay(_tx_delay + XMIT_START_ADJUSTMENT);
-	
+
 	// Write each of the 8 bits
 	if (_inverse_logic)
 	{
@@ -871,10 +871,10 @@ size_t BMSerial::write(uint8_t b)
 	      tx_pin_write(LOW); // send 1
 	    else
 	      tx_pin_write(HIGH); // send 0
-	  
+
 	    tunedDelay(_tx_delay);
 	  }
-	
+
 	  tx_pin_write(LOW); // restore pin to natural state
 	}
 	else
@@ -885,27 +885,27 @@ size_t BMSerial::write(uint8_t b)
 	      tx_pin_write(HIGH); // send 1
     else
 	      tx_pin_write(LOW); // send 0
-	  
+
 	    tunedDelay(_tx_delay);
 	  }
-	
+
 	  tx_pin_write(HIGH); // restore pin to natural state
 	}
-	
+
 	if(_transmitPin==_receivePin){
 		*_transmitModeRegister&=~_transmitBitMask;
 		if (!_inverse_logic)
 			*_transmitPortRegister|=_transmitBitMask;
 	}
-	
+
 	SREG = oldSREG; // turn interrupts back on
 	tunedDelay(_tx_delay);
-	
+
 	return 1;
 #else
 	return 0;
 #endif
-	
+
 }
 
 void BMSerial::flush()
@@ -942,8 +942,8 @@ void BMSerial::flush()
 		return;
 	}
 #endif
-	
-#ifndef USB_PID_DUE 
+
+#ifndef USB_PID_DUE
 	if (!is_listening())
 		return;
 
@@ -979,8 +979,8 @@ int16_t BMSerial::peek()
 		return Serial3.peek();
 	}
 #endif
-	
-#ifndef USB_PID_DUE 
+
+#ifndef USB_PID_DUE
 	if (!is_listening())
 		return -1;
 

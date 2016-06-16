@@ -1,27 +1,30 @@
 #ifndef TREKKING_H
 #define TREKKING_H
 
-#include "../Log/log.h"
-#include "../XLMaxSonarEZ/sonarlist.h"
+#include <Log.h>
+#include <XLMaxSonarEZ.h>
+#include <SonarList.h>
+// #include "../XLMaxSonarEZ/sonarlist.h"
 #include "../Robot/Robot.h"
-#include "../Timer/timer.h"
+#include "../Robot/DualDriver.h"
+#include  <Timer.h>
 #include "trekkingpins.h"
 #include "trekkingmath.h"
 #include "position.h"
 #include "PIDControler.h"
-#include "../Robot/DualDriver.h"
 #include "DuoDriver.h"
 
-#include "../I2CDev/I2Cdev.h"
-#include "../MPU9150Lib/MPU9150Lib.h"
-#include "../CalLib/CalLib.h"
+#include <I2Cdev.h>
+#include <MPU9150Lib.h>
+#include <CalLib.h>
+
 #include <dmpKey.h>
 #include <dmpmap.h>
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
 
 #define LIGHT_ON 		'l'
-#define LIGHT_OFF 		'o'
+#define LIGHT_OFF 	'o'
 
 #ifndef PI
 #define PI 3.141592653589793238;
@@ -41,9 +44,18 @@ public:
 	void goStraight(bool enable_pid);
 	void doCircle(bool enable_pid);
 	void goStraightWithControl(float meters);
+	void printSonarInfo();
+	void printEncodersInfo();
+	void printRotations();
+	void printMPUInfo();
+	void printPosition();
+	void printVelocities();
+	void printTime();
+	void finishLogLine();
 
 
 private:
+	const char DELIMITER;
 	const float GEAR_RATE;
 	const float PULSES_PER_ROTATION;
 	const float WHEEL_RADIUS;
@@ -142,16 +154,22 @@ private:
 	float l_rotations_per_sec, r_rotations_per_sec;
 	Position current_position;
 	unsigned long last_update_time;
+	Position *q_desired;
+
+	float kp;
+	float ki;
+	float kd;
 
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
-	void controlMotors(float v, float w, bool enable_pid);
+	void controlMotors(float v, float w, bool enable_pid, float dT);
 	void trackTrajectory();
 	void regulateControl();
+	void cartesianControl(Position* q_desired, float dT);
 
-	/*----|Position update related functions|--------------------------------*/
-	void updatePosition();
+	/*----|Position update related functions|---------------------------------*/
+	void updatePosition(float dT);
 	void resetPosition(Position new_position);
 	void readMPU();
 	void updateSpeeds();
@@ -191,13 +209,6 @@ private:
 	bool checkSensors(); // returns 1 if all the sensors are working
 	void calibrateAngle();
 	void debug();
-	void printSonarInfo();
-	void printEncodersInfo();
-	void printMPUInfo();
-	void printPosition();
-	void printVelocities();
-	void printTime();
-	void finishLogLine();
 
 };
 

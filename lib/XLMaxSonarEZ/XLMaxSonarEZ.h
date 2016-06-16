@@ -37,7 +37,7 @@ namespace Sonar {
 		All operation modes defined on the datasheet.
 
 		- Chain: First sensor is triggered before reading.
-		
+
 		- Chain Loop: First sensor is triggered only once, regardless the
 			number of subsequent readings
 

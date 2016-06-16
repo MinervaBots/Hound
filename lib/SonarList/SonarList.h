@@ -15,10 +15,10 @@
 */
 // #ifndef LinkedList_h
 // #include "../LinkedList/LinkedList.h"
-#include "LinkedList.h"
+#include <LinkedList.h>
 // #endif
 
-#include "XLMaxSonarEZ.h"
+#include <XLMaxSonarEZ.h>
 
 class SonarList: public LinkedList<XLMaxSonarEZ*> {
 public:
