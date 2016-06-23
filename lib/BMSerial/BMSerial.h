@@ -1,11 +1,11 @@
 /*
-Modified version of SoftwareSerial.cpp (formerly NewSoftSerial.cpp) -
+Modified version of SoftwareSerial.cpp (formerly NewSoftSerial.cpp) - 
 Multi-instance software serial library for Arduino/Wiring
 -- Interrupt-driven receive and other improvements by ladyada
    (http://ladyada.net)
 -- Tuning, circular buffer, derivation from class Print/Stream,
    multi-instance support, porting to 8MHz processors,
-   various optimizations, PROGMEM delay tables, inverse logic and
+   various optimizations, PROGMEM delay tables, inverse logic and 
    direct port writing by Mikal Hart (http://www.arduiniana.org)
 -- Pin change interrupt macros by Paul Stoffregen (http://www.pjrc.com)
 -- 20MHz processor support by Garrett Mace (http://www.macetech.com)
@@ -41,22 +41,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 * Definitions
 ******************************************************************************/
 
-
-class BMSerial : public Stream
 #define _SS_MAX_RX_BUFF 64 // RX buffer size
 #define _SS_VERSION 11 // software version of this library
 #ifndef GCC_VERSION
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
-#ifndef USB_PID_DUE
+#ifndef USB_PID_DUE 
 
 #define digitalPinToPCIFR(p)    (((p) >= 0 && (p) <= 21) ? (&PCIFR) : ((uint8_t *)NULL))
 #define digitalPinToPCIFRbit(p) (((p) <= 7) ? 2 : (((p) <= 13) ? 0 : 1))
 
 #endif
 
-
+class BMSerial : public Stream
 {
 private:
 	// per object data
@@ -67,23 +65,23 @@ private:
 	uint8_t _transmitBitMask;
 	volatile uint8_t *_transmitPortRegister;
 	volatile uint8_t *_transmitModeRegister;
-
+	
 	uint16_t _rx_delay_centering;
 	uint16_t _rx_delay_intrabit;
 	uint16_t _rx_delay_stopbit;
 	uint16_t _tx_delay;
-
+	
 	uint16_t _buffer_overflow:1;
 	uint16_t _inverse_logic:1;
-
+	
 	// static data
-	static char _receive_buffer[_SS_MAX_RX_BUFF];
+	static char _receive_buffer[_SS_MAX_RX_BUFF]; 
 	static volatile uint8_t _receive_buffer_tail;
 	static volatile uint8_t _receive_buffer_head;
 	static BMSerial *active_object;
 
 	// private methods
-#ifndef USB_PID_DUE
+#ifndef USB_PID_DUE 
 	void recv();
 	uint8_t rx_pin_read();
 	void tx_pin_write(uint8_t pin_state);
@@ -114,7 +112,7 @@ public:
 	virtual int available();
 	virtual void flush();
 
-#ifndef USB_PID_DUE
+#ifndef USB_PID_DUE 
 	// public only for easy access by interrupt handlers
 	static inline void handle_interrupt();
 #endif
@@ -125,7 +123,7 @@ public:
 	uint32_t readdec(uint32_t timeout,bool ignoreleading=true);
 	uint32_t readhex(uint32_t timeout,bool ignoreleading=true);
 	uint32_t readbin(uint32_t timeout,bool ignoreleading=true);
-
+	
 };
 
 // Arduino 0012 workaround

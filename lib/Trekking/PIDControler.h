@@ -8,7 +8,6 @@ class PIDControler
     void Init(float Kp, float Kd, float Ki, float bsp);
     void setConstants(float Kp, float Kd, float Ki);
     float run(float reference, float y);
-    float run(float reference, float y, float delta_T);
     float integral, derivative, proportional;
     void reset();
   private:
