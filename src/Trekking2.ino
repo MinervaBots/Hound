@@ -1,12 +1,10 @@
-
 #include <EEPROM.h>
 
-#include <DuoDriver.h>
-#include <position.h>
-#include <Trekking.h>
-#include <trekkingpins.h>
-#include <BMSerial.h>
-#include <RoboClaw.h>
+#include "DuoDriver.h"
+#include "position.h"
+#include "timer.h"
+#include "trekking.h"
+#include "trekkingpins.h"
 
 float max_linear_vel = 2.0;
 float max_angular_vel = 2.0;
@@ -15,7 +13,7 @@ DuoDriver* driver = new DuoDriver(TX_MOTOR_PIN,
                                   RX_MOTOR_PIN,
                                   ROBOCLAW_TIMEOUT,
                                   ROBOCLAW_ADDRESS);
-
+                                  //
 Trekking trekking(max_linear_vel, max_angular_vel, driver);
 Position *cone_1 = new Position(10, 0, 0);
 Position *cone_2 = new Position(0, 0, 0);
