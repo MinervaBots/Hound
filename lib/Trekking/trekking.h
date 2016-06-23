@@ -20,6 +20,7 @@
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
 
+
 #define LIGHT_ON 		'l'
 #define LIGHT_OFF 		'o'
 
@@ -42,11 +43,21 @@ public:
 	void doCircle(bool enable_pid);
 	void goStraightWithControl(float meters);
 
+	void printSonarInfo();
+	void printEncodersInfo();
+	void printRotations();
+	void printMPUInfo();
+	void printPosition();
+	void printVelocities();
+	void printTime();
+	void finishLogLine();
 
 private:
+	const char DELIMITER;
 	const float GEAR_RATE;
 	const float PULSES_PER_ROTATION;
 	const float WHEEL_RADIUS;
+	const float TWO_PI_R;
 	const float MAX_PPS;
 	const float DISTANCE_FROM_RX; // = distancia entre a roda e o eixo sagital do robo
 
@@ -135,6 +146,8 @@ private:
 	float pid_convertion_const;
 
 	float euler_radians[3];
+	float last_euler_radians[3];
+	bool first_mpu_sample;
 	float initial_euler_radians;
 	MPU9150Lib MPU;
 	bool mpu_first_time;
@@ -142,16 +155,25 @@ private:
 	float l_rotations_per_sec, r_rotations_per_sec;
 	Position current_position;
 	unsigned long last_update_time;
+	Position *q_desired;
+
+	float kp;
+	float ki;
+	float kd;
+
+	bool is_testing = false;
+	float tested_pps;
 
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
-	void controlMotors(float v, float w, bool enable_pid);
+	void controlMotors(float v, float w, bool enable_pid, float dT);
 	void trackTrajectory();
 	void regulateControl();
+	void cartesianControl(Position* q_desired, float dT);
 
-	/*----|Position update related functions|--------------------------------*/
-	void updatePosition();
+	/*----|Position update related functions|---------------------------------*/
+	void updatePosition(float dT);
 	void resetPosition(Position new_position);
 	void readMPU();
 	void updateSpeeds();
@@ -165,11 +187,11 @@ private:
 
 
 	/*----|Operation modes|--------------------------------------------------*/
-	void standby();
-	void search();
-	void refinedSearch();
-	void lighting();
-	void (Trekking::*operation_mode)(void);
+	void standby(float dT);
+	void search(float dT);
+	void refinedSearch(float dT);
+	void lighting(float dT);
+	void (Trekking::*operation_mode)(float);
 
 	/*----|Operation functions|----------------------------------------------*/
 	void goToNextTarget();
@@ -191,14 +213,6 @@ private:
 	bool checkSensors(); // returns 1 if all the sensors are working
 	void calibrateAngle();
 	void debug();
-	void printSonarInfo();
-	void printEncodersInfo();
-	void printMPUInfo();
-	void printPosition();
-	void printVelocities();
-	void printTime();
-	void finishLogLine();
 
 };
-
 #endif //TREKKING_H

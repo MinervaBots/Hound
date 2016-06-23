@@ -1,7 +1,3 @@
-/*
-	L298 based driver
-*/
-
 #ifndef DUODRIVER_H
 #define DUORDRIVER_H
 
@@ -10,6 +6,7 @@
 #include "../RoboClaw/RoboClaw.h"
 #include "../BMSerial/BMSerial.h"
 
+#include "PIDControler.h"
 
 
 class DuoDriver: public DualDriver
@@ -40,11 +37,26 @@ public:
 	byte getRPWM();
 	byte getLPWM();
 
-  int32_t getLeftEncoder();
-  int32_t getRightEncoder();
+  uint32_t getLeftEncoder();
+  uint32_t getRightEncoder();
 
-  int32_t getLeftPPS();
-  int32_t getRightPPS();
+  uint32_t getLeftPPS();
+  uint32_t getRightPPS();
+
+  void setMaxPPS(uint32_t MAX_PPS);
+
+  void setPID(float kp, float ki, float kd, uint32_t max_pps);
+  void setLeftPID(float kp, float ki, float kd, uint32_t MAX_PPS);
+  void setRightPID(float kp, float ki, float kd, uint32_t MAX_PPS);
+
+  void setRightPPS(float pps, float dT);
+  void setRightPPS(float pps);
+
+  void setLeftPPS(float pps, float dT);
+  void setLeftPPS(float pps);
+
+  uint8_t mapPWM(float pps);
+
 
 	RoboClaw roboclaw;
 
@@ -60,6 +72,15 @@ protected:
 
     uint8_t status_right, status_left;
     bool valid_right, valid_left;
+
+    float kp_right, ki_right, kd_right;
+    float kp_left, ki_left, kd_left;
+
+    uint32_t MAX_PPS;
+    uint32_t last_l_pps, last_r_pps;
+
+    PIDControler r_pid;
+  	PIDControler l_pid;
 };
 
 #endif
