@@ -13,7 +13,7 @@ class DuoDriver: public DualDriver
 {
 
 public:
-  DuoDriver(byte tx_pin, byte rx_pin, int timeOut, int address);  // I am not sure the address is necessarily of the type int
+  DuoDriver(byte tx_pin, byte rx_pin, int timeOut, int address);
 
   void setAllRightPWM(byte pwm, bool reverse = false);
 	void setAllLeftPWM(byte pwm, bool reverse = false);
@@ -45,9 +45,9 @@ public:
 
   void setMaxPPS(uint32_t MAX_PPS);
 
-  void setPID(float kp, float ki, float kd, uint32_t max_pps);
-  void setLeftPID(float kp, float ki, float kd, uint32_t MAX_PPS);
-  void setRightPID(float kp, float ki, float kd, uint32_t MAX_PPS);
+  void setPID(float kp, float ki, float kd);
+  void setLeftPID(float kp, float ki, float kd);
+  void setRightPID(float kp, float ki, float kd);
 
   void setRightPPS(float pps, float dT);
   void setRightPPS(float pps);

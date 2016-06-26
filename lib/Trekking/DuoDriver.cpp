@@ -16,19 +16,19 @@ void DuoDriver::setMaxPPS(uint32_t MAX_PPS){
   this->MAX_PPS = MAX_PPS;
 }
 
-void DuoDriver::setPID(float kp, float ki, float kd, uint32_t MAX_PPS){
-  setLeftPID(kp, ki, kd, MAX_PPS);
-  setRightPID(kp, ki, kd, MAX_PPS);
+void DuoDriver::setPID(float kp, float ki, float kd){
+  setLeftPID(kp, ki, kd);
+  setRightPID(kp, ki, kd);
 }
 
-void DuoDriver::setLeftPID(float kp, float ki, float kd, uint32_t MAX_PPS){
+void DuoDriver::setLeftPID(float kp, float ki, float kd){
   kp_left = kp;
 	ki_left = ki;
 	kd_left = kd;
   l_pid.Init(kp_left, kd_left, ki_left, 1);
 }
 
-void DuoDriver::setRightPID(float kp, float ki, float kd, uint32_t MAX_PPS){
+void DuoDriver::setRightPID(float kp, float ki, float kd){
   kp_right = kp;
 	ki_right = ki;
 	kd_right = kd;

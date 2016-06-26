@@ -21,8 +21,8 @@
 #include <inv_mpu_dmp_motion_driver.h>
 
 
-#define LIGHT_ON 		'l'
-#define LIGHT_OFF 		'o'
+#define LIGHT_ON  'l'
+#define LIGHT_OFF 'o'
 
 #ifndef PI
 #define PI 3.141592653589793238;
@@ -30,7 +30,7 @@
 
 class Trekking : public Robot{
 public:
-	Trekking(float max_linear_velocity, float max_angular_velocity, DuoDriver* driver);
+	Trekking(float safety_factor, DuoDriver* driver);
 	~Trekking();
 
 	void addTarget(Position *target);
@@ -58,7 +58,14 @@ private:
 	const float PULSES_PER_ROTATION;
 	const float WHEEL_RADIUS;
 	const float TWO_PI_R;
+	const float MAX_RPM;
+	const float MAX_RPS;
 	const float MAX_PPS;
+
+	const float SAFE_RPM;
+	const float SAFE_RPS;
+	const float SAFE_PPS;
+
 	const float DISTANCE_FROM_RX; // = distancia entre a roda e o eixo sagital do robo
 
 
@@ -73,7 +80,6 @@ private:
 	//Motors
 	const byte MAX_MOTOR_PWM;
 	const byte MIN_MOTOR_PWM;
-	const float MAX_RPS;
 
 	const int COMMAND_BAUD_RATE;
 	const int LOG_BAUD_RATE;
@@ -137,6 +143,7 @@ private:
 	TimerForMethods<Trekking> tracking_regulation_timer;
 	TimerForMethods<Trekking> calibrate_angle_timer;
 	Timer control_clk;
+	float elapsed_time;
 
 	float kp_right, ki_right, kd_right, bsp_right;
 	float kp_left, ki_left, kd_left, bsp_left;
@@ -155,13 +162,17 @@ private:
 	float l_rotations_per_sec, r_rotations_per_sec;
 	Position current_position;
 	unsigned long last_update_time;
+	unsigned long last_update_time_2;
 	Position *q_desired;
 
 	float kp;
 	float ki;
 	float kd;
 
-	bool is_testing = false;
+	bool is_testing_refinedSearch = false;
+	bool is_testing_openloop = false;
+	bool is_testing_search = false;
+
 	float tested_pps;
 
 
@@ -169,7 +180,7 @@ private:
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
 	void controlMotors(float v, float w, bool enable_pid, float dT);
 	void trackTrajectory();
-	void regulateControl();
+	void regulateControl(Position* q_desired, float dT);
 	void cartesianControl(Position* q_desired, float dT);
 
 	/*----|Position update related functions|---------------------------------*/

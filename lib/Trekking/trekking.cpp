@@ -2,8 +2,8 @@
 
 
 /*----|Public|---------------------------------------------------------------*/
-Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
-	DuoDriver* driver_pointer):Robot(driver_pointer),
+Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
+	Robot(driver_pointer),
 
 	DELIMITER(';'),
 	// DELIMITER('\t'),
@@ -12,12 +12,21 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	PULSES_PER_ROTATION(64),
 	WHEEL_RADIUS(0.075),
 	TWO_PI_R(WHEEL_RADIUS*2*PI),
-	MAX_PPS(10133.33), // = GEAR_RATE * MAX_RPM/60 * POINTS = 19 * (500/60) * 64
+	MAX_RPM(500), // rotations per min
+	MAX_RPS(MAX_RPM/60), // rotations per sec
+	MAX_PPS(GEAR_RATE*PULSES_PER_ROTATION*MAX_RPS), // qpulses per sec
+
+	SAFE_RPM(MAX_RPM*safety_factor),
+	SAFE_RPS(MAX_RPS*safety_factor),
+	SAFE_PPS(MAX_PPS*safety_factor),
+
+
 	DISTANCE_FROM_RX(0.1375), // 137.5mm
 
+
 	//Velocities
-	MAX_LINEAR_VELOCITY(max_linear_velocity),
-	MAX_ANGULAR_VELOCITY(max_angular_velocity),
+	MAX_LINEAR_VELOCITY(TWO_PI_R*SAFE_RPS),
+	MAX_ANGULAR_VELOCITY(TWO_PI_R*(2*SAFE_RPS)/(2*DISTANCE_FROM_RX)),
 
 	//Distances for Ultrasound
 	MAX_SONAR_DISTANCE(200),
@@ -26,7 +35,6 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	//Motors
 	MAX_MOTOR_PWM(130),
 	MIN_MOTOR_PWM(100),
-	MAX_RPS(8.33*0.3), //fator de seguranca
 
 	COMMAND_BAUD_RATE(9600),
 	LOG_BAUD_RATE(9600),
@@ -60,6 +68,8 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 	tracking_regulation_timer(this, &Trekking::trackTrajectory),
 	calibrate_angle_timer(this, &Trekking::calibrateAngle)
 {
+	driver = driver_pointer;
+
 	//Streams
 	operation_mode_switch = MANUAL_MODE;
 	command_stream = &Serial1; //bluetooth on Serial1
@@ -103,8 +113,8 @@ Trekking::Trekking(float max_linear_velocity, float max_angular_velocity,
 
 	right_pid.Init(kp_right, kd_right, ki_right, bsp_right);
 	left_pid.Init(kp_left, kd_left, ki_left, bsp_left);
+	driver->setPID(kp, ki, kd);
 
-	driver = driver_pointer;
 	driver->setMaxPPS(MAX_PPS);
 }
 
@@ -127,30 +137,55 @@ void Trekking::addTarget(Position *target) {
 
 void Trekking::start() {
 	emergency();
-	driver->setPID(kp, ki, kd, MAX_PPS);
-	control_clk.start();
+	delay(1500);
+
 	//The alert led turns off when MPU is ready
 	MPU.init(MPU_UPDATE_RATE, MPU_MAG_MIX_GYRO_AND_MAG,
 		MAG_UPDATE_RATE, MPU_LPF_RATE);
+
+	tested_pps = SAFE_PPS;
+
+	// control_clk.start();
+	elapsed_time = 0;
+	last_update_time = millis();
+	last_update_time_2 = millis();
 }
 
 void Trekking::update() {
-	loopCheck();
+	loopCheck(); //read all possible inputs
 
 	//updating dT
-	control_clk.update();
-	float delta_t = control_clk.getElapsedTime() - last_update_time;
-	float dT = delta_t / 1000.0;
-	last_update_time = control_clk.getElapsedTime();
+	// control_clk.update();
+	// float delta_t = control_clk.getElapsedTime() - last_update_time;
+	// float dT = delta_t / 1000.0;
+	// last_update_time = control_clk.getElapsedTime();
 
-	//updatePosition
-	// if(is_testing){
-	// 	printTime();
-	// 	printSonarInfo();
-	// }
-	updatePosition(dT);
+	float delta_t = millis() - last_update_time;
+  last_update_time = millis();
+  float dT = delta_t/1000.00;
+
+	elapsed_time += dT;
+
 	(this->*operation_mode)(dT); //Call the current operation
+	updatePosition(dT); //updatePosition
 
+	// float delta_t_2 = millis() - last_update_time_2;
+  // last_update_time_2 = millis();
+  // float dT_2 = delta_t_2/1000.00;
+	//
+	//  log << dT << '\t' << dT_2 << '\t' << (dT_2-dT)*1000 << log_endl;
+
+
+	if(is_testing_openloop){
+		log << elapsed_time*1000;
+		log << DELIMITER << dT*1000;
+		log << DELIMITER << driver->getLeftPPS();
+		log << DELIMITER << driver->getRightPPS();
+		log << DELIMITER << tested_pps;
+		log << log_endl;
+	}
+
+	// delay(200);
 }
 
 void Trekking::emergency() {
@@ -216,50 +251,50 @@ void Trekking::controlMotors(float v, float w, bool enable_pid, float dT){
 
 	//Limiting speeds
 	if (left_rotation < 0 && right_rotation > 0){
-		l_limited = max(left_rotation, -MAX_RPS); // L negativo
-		r_limited = min(right_rotation, MAX_RPS); // R positivo
+		l_limited = max(left_rotation, -SAFE_RPS); // L negativo
+		r_limited = min(right_rotation, SAFE_RPS); // R positivo
 	}
 	else if (left_rotation > 0 && right_rotation < 0){
-		r_limited = max(right_rotation, -MAX_RPS); // R negativo
-		l_limited = min(left_rotation, MAX_RPS);   // L positivo
+		r_limited = max(right_rotation, -SAFE_RPS); // R negativo
+		l_limited = min(left_rotation, SAFE_RPS);   // L positivo
 	}
-	else if (left_rotation > MAX_RPS || right_rotation > MAX_RPS){
+	else if (left_rotation > SAFE_RPS || right_rotation > SAFE_RPS){
 		if (left_rotation > right_rotation){
-			r_limited = MAX_RPS*(1- (left_rotation - right_rotation)/left_rotation);
-			l_limited = MAX_RPS;
+			r_limited = SAFE_RPS*(1- (left_rotation - right_rotation)/left_rotation);
+			l_limited = SAFE_RPS;
 		}
 		else if (left_rotation < right_rotation){
-			l_limited = MAX_RPS*(1- (right_rotation - left_rotation)/right_rotation);
-			r_limited = MAX_RPS;
+			l_limited = SAFE_RPS*(1- (right_rotation - left_rotation)/right_rotation);
+			r_limited = SAFE_RPS;
 		}
 		else if (left_rotation == right_rotation){
-			r_limited = MAX_RPS;
-			l_limited = MAX_RPS;
+			r_limited = SAFE_RPS;
+			l_limited = SAFE_RPS;
 		}
 	}
-	else if (left_rotation < -MAX_RPS || right_rotation < -MAX_RPS){
+	else if (left_rotation < -SAFE_RPS || right_rotation < -SAFE_RPS){
   	if (left_rotation < right_rotation){
-    	r_limited = -MAX_RPS*(1 -(left_rotation - right_rotation)/left_rotation);
-      l_limited = -MAX_RPS;
+    	r_limited = -SAFE_RPS*(1 -(left_rotation - right_rotation)/left_rotation);
+      l_limited = -SAFE_RPS;
     }
     else if (left_rotation > right_rotation){
-        l_limited = -MAX_RPS*(1 -(right_rotation - left_rotation)/right_rotation);
-        r_limited = -MAX_RPS;
+        l_limited = -SAFE_RPS*(1 -(right_rotation - left_rotation)/right_rotation);
+        r_limited = -SAFE_RPS;
     }
     else if (left_rotation == right_rotation){
-        r_limited = -MAX_RPS;
-        l_limited = -MAX_RPS;
+        r_limited = -SAFE_RPS;
+        l_limited = -SAFE_RPS;
     }
 	}
-
-	// log << "<DESEJADO>";
-	// log << DELIMITER << v;
-	// log << DELIMITER << w;
-	// log << DELIMITER << left_rotation;
-	// log << DELIMITER << right_rotation;
-	// log << DELIMITER << l_limited;
-	// log << DELIMITER << r_limited;
-
+	if(is_testing_search || is_testing_refinedSearch){
+		log << "<DESEJADO>";
+		log << DELIMITER << v;
+		log << DELIMITER << w;
+		log << DELIMITER << left_rotation;
+		log << DELIMITER << right_rotation;
+		log << DELIMITER << l_limited;
+		log << DELIMITER << r_limited;
+	}
 	float r_qpps = r_limited*GEAR_RATE*PULSES_PER_ROTATION;
 	float l_qpps = l_limited*GEAR_RATE*PULSES_PER_ROTATION;
 
@@ -311,22 +346,19 @@ void Trekking::trackTrajectory() {
 
 }
 
-void Trekking::regulateControl() {
+void Trekking::regulateControl(Position* q_desired, float dT) {
 	//constants to handle errors
-	const int k1 = 1;
+	const int k1 = 1.8;
 	const int k2 = 3;
-	const int k3 = -1;
-
-	// getting desired (final) configuration
-	Position* q_desired = targets.get(current_target_index);
+	const int k3 = 1;
 
 	// getting gap between configurations
 	Position gap = current_position.calculateGap(*q_desired);
 
 	//Angular transformation
 	float rho = sqrt( pow(gap.getX(),2) + pow(gap.getY(),2) );
-	float gamma = atan2(gap.getY(), gap.getX()) + gap.getTheta();
-	float delta = gamma + gap.getTheta();
+	float gamma = gap.getTheta() + atan2(gap.getY(), gap.getX());
+	float delta = gap.getTheta() - gamma;
 
 	//Calculating v e w
 	float v = (k1 * rho) * cos(gamma);
@@ -373,7 +405,8 @@ void Trekking::resetPosition(Position new_position){
 	r_rotations_per_sec = 0;
 
 	current_position = new_position;
-	control_clk.reset();
+	elapsed_time = 0;
+	// control_clk.reset();
 }
 
 void Trekking::readMPU(){
@@ -459,7 +492,7 @@ void Trekking::standby(float dT) {
 
 void Trekking::search(float dT) {
 	if(!is_tracking) {
-		log.debug("Search", "starting tracking timer");
+		log.assert("operation mode", "SEARCH");
 		// tracking_regulation_timer.start();
 		is_tracking = true;
 		q_desired = targets.get(current_target_index);
@@ -473,27 +506,26 @@ void Trekking::search(float dT) {
 	 	tracking_regulation_timer.stop();
 	 	tracking_regulation_timer.reset();
 	 	is_tracking = false;
-	 	log.assert("operation mode", "refined search");
+	 	log.assert("operation mode", "REFINED SEARCH");
 	 	operation_mode = &Trekking::refinedSearch;
 	}
 	else{
-		cartesianControl(q_desired, dT);
-		delay(200);
+		// cartesianControl(q_desired, dT);
+		regulateControl(q_desired, dT);
+		// delay(200);
 	}
 	// Log for debug
-	log << DELIMITER << "<REAL>";
-	printTime();
-	printPosition();  // [x y theta]
-	printVelocities();// [V e W]
-	printRotations(); // [L_RPS e R_RPS]
-	finishLogLine();
+	if(is_testing_search){
+		log << DELIMITER << "<REAL>";
+		printTime();
+		printVelocities();// [V e W]
+		printRotations(); // [L_RPS e R_RPS]
+		printPosition();  // [x y theta]
+		finishLogLine();
+	}
 }
 
 void Trekking::refinedSearch(float dT) {
-	// printEncodersInfo();
-	printSonarInfo();
-	finishLogLine();
-
 	// data
 	sonar_list.read();
 	float sonars[3]; // esquerda,direita,centro
@@ -525,6 +557,14 @@ void Trekking::refinedSearch(float dT) {
 		else v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*(sonars[1]),minFactor);
 		// v = refLinear*(exp(/*k*/-1.5*MAX_SONAR_DISTANCE/v)+minFactor); // we could add a small factor k to make it faster
 		controlMotors(v,w,false,0);
+	}
+	if(is_testing_refinedSearch){
+		log << DELIMITER << "<REAL>";
+		printTime();
+		printVelocities();// [V e W]
+		printRotations(); // [L_RPS e R_RPS]
+		printSonarInfo();  // [L C R]
+		finishLogLine();
 	}
 }
 
@@ -572,19 +612,23 @@ void Trekking::reset() {
 	current_command = ' ';
 	is_aligned = false;
 	is_tracking = false;
-	is_testing = false;
+	is_testing_openloop = false;
+	is_testing_refinedSearch = false;
+	is_testing_search = false;
 	first_mpu_sample = true;
 	current_target_index = 0;
 	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
 	left_vel_ref = 0;
 	right_vel_ref = 0;
 
+	elapsed_time = 0;
+	last_update_time = millis();
+
 	//Go to the standby state
 	operation_mode = &Trekking::standby;
 	log.assert("operation mode", "standby");
 
 	log.assert("reset", "done.");
-	readInputs();
 }
 
 void Trekking::stop() {
@@ -636,7 +680,6 @@ void Trekking::updateTimers() {
 
 /*----|Private: Auxiliar functions|------------------------------------------*/
 void Trekking::loopCheck(){
-	readInputs();   //Read all the inputs
 	updateTimers(); //Update all the timers
 	current_command = ' ';
 
@@ -648,28 +691,12 @@ void Trekking::loopCheck(){
 	} else {//Read the radio
 	}
 
-	//Stop the robot if the emergency button is pressed or
-	//the stop command was received
 	if(current_command == 'D' || emergency_button) {
-		emergency();
+		emergency(); //stop the robot
 	}
 
-	tested_pps = 5000;
-	debug(); //Debug
-
-	if(is_testing){
-		control_clk.update();
-		float delta_t = control_clk.getElapsedTime() - last_update_time;
-		// float dT = delta_t / 1000.0;
-		last_update_time = control_clk.getElapsedTime();
-
-		log << last_update_time;
-		log << DELIMITER << delta_t;
-		log << DELIMITER << driver->getLeftPPS();
-		log << DELIMITER << driver->getRightPPS();
-		log << DELIMITER << tested_pps;
-		log << log_endl;
-	}
+	debug(); // handle other commands from serial
+	readInputs(); //handle commands from buttons
 }
 
 bool Trekking::checkSensors() {return true;}
@@ -678,7 +705,7 @@ void Trekking::calibrateAngle() {
 	initial_euler_radians = euler_radians[2];
 	current_position.setTheta(0);
 	digitalWrite(ALERT_LED, LOW);
-	log << "Angle calibrated!" << log_endl;
+	log.info("mpu","Angle calibrated!");
 
 	// Serial.print("Calibrated angle = ");
 	// Serial.println(initial_euler_radians);
@@ -689,40 +716,43 @@ void Trekking::debug() {
 		log.debug("debug command", "set to standby");
 		operation_mode = &Trekking::standby;
 		stopTimers();
-	} else if(current_command == 'e') {
+	}
+	else if(current_command == 'e') {
 		log.debug("debug command", "set to search");
 		operation_mode = &Trekking::search;
 		// operation_mode_switch = AUTO_MODE;
 		init_button = true;
 		is_tracking = false;
-	} else if(current_command == 'f') {
+	}
+	else if(current_command == 'f') {
 		log.debug("debug command", "set to refined search");
 		// operation_mode_switch = AUTO_MODE;
 		operation_mode = &Trekking::refinedSearch;
-
-	} else if(current_command == 'l') {
+	}
+	else if(current_command == 'l') {
 		log.debug("debug command", "set to lighting");
 		operation_mode = &Trekking::lighting;
 
-	} else if(current_command == 'r') {
+	}
+	else if(current_command == 'r') {
 		log.debug("debug command", "reset");
 		reset();
-
-	} else if(current_command == 'W') {
+	}
+	else if(current_command == 'W') {
 		log.debug("debug command", "turn on sirene");
 		turnOnSirene();
-
-	} else if(current_command == 'w') {
+	}
+	else if(current_command == 'w') {
 		log.debug("debug command", "turn off sirene");
 		turnOffSirene();
-
-	} else if(current_command == 'n') {
+	}
+	else if(current_command == 'n') {
 		log.debug("debug command", "print encoders");
 		log <<	DELIMITER << driver->getLeftEncoder();
 		log <<	DELIMITER << driver->getRightEncoder();
 		log << log_endl;
-
-	} else if(current_command == 'p') {
+	}
+	else if(current_command == 'p') {
 		log.debug("debug command", "print position");
 		log << DEBUG;
 		log << DELIMITER << "x";
@@ -733,8 +763,8 @@ void Trekking::debug() {
 		printPosition();
 		printVelocities();
 		finishLogLine();
-
-	} else if(current_command == 'm') {
+	}
+	else if(current_command == 'm') {
 		log.debug("debug command", "print mpu");
 		log << DEBUG;
 		log << DELIMITER << "init";
@@ -746,34 +776,75 @@ void Trekking::debug() {
 		printMPUInfo();
 
 		finishLogLine();
-
-	} else if(current_command == 'o') {
-		log.debug("debug command", "print sonars");
+	}
+	else if(current_command == 'o') {
+		current_command = ' ';
+		log.debug("debug command", "testing sonars");
 		log << DEBUG;
 		log << DELIMITER << "left";
 		log << DELIMITER << "center";
 		log << DELIMITER << "right" << log_endl;
-		printSonarInfo();
-		finishLogLine();
-
-	} else if(current_command == 'b') {
-		log.debug("debug command", "print buttons");
+		while (current_command != 'o'){
+			if(command_stream->available()) {
+				current_command = command_stream->read();
+			}
+				printSonarInfo();
+				finishLogLine();
+		}
+	}
+	else if(current_command == 'b') {
+		current_command = ' ';
+		log.debug("debug command", "testing buttons");
 		log << DEBUG;
 		log << DELIMITER << "init";
 		log << DELIMITER << "emergency";
 		log << DELIMITER << "mode" << log_endl;
 
-		log << DELIMITER << digitalRead(INIT_BUTTON_PIN);
-		log << DELIMITER << digitalRead(EMERGENCY_BUTTON_PIN);
-		log << DELIMITER << digitalRead(OPERATION_MODE_SWITCH_PIN);
-		log << log_endl;
+		while (current_command != 'b'){
+			if(command_stream->available()) {
+				current_command = command_stream->read();
+			}
+			log << DELIMITER << digitalRead(INIT_BUTTON_PIN);
+			log << DELIMITER << digitalRead(EMERGENCY_BUTTON_PIN);
+			log << DELIMITER << digitalRead(OPERATION_MODE_SWITCH_PIN);
+			log << log_endl;
+		}
 	}
-
 	else if(current_command == 'x') {
-		is_testing = !is_testing;
-		driver->setLeftPPS(is_testing*tested_pps);
-		driver->setRightPPS(is_testing*tested_pps);
-		control_clk.reset();
+		if(!is_testing_openloop){
+			reset();
+			log.debug("debug command", "testing open motors in open loop");
+		}
+		is_testing_openloop = !is_testing_openloop;
+		driver->setLeftPPS(is_testing_openloop*tested_pps);
+		driver->setRightPPS(is_testing_openloop*tested_pps);
+		elapsed_time = 0;
+			log << log_endl;
+		// control_clk.reset();
+	}
+	else if(current_command == 'E') {
+		if(!is_testing_search){
+			reset();
+			log.debug("debug command", "testing search");
+			is_testing_search = true;
+			operation_mode = &Trekking::search;
+			log << '\\' << log_endl;
+		} else{
+			reset();
+		}
+		elapsed_time = 0;
+	}
+	else if(current_command == 'T') {
+		if(!is_testing_refinedSearch){
+			reset();
+			log.debug("debug command", "testing refined search");
+			is_testing_refinedSearch = true;
+			operation_mode = &Trekking::refinedSearch;
+			log << log_endl;
+		} else {
+			reset();
+		}
+		elapsed_time = 0;
 	}
 }
 
@@ -832,7 +903,8 @@ void Trekking::finishLogLine()
 
 void Trekking::printTime()
 {
-	log << DELIMITER << control_clk.getElapsedTime() << DELIMITER;
+	log << DELIMITER << elapsed_time << DELIMITER;
+	// log << DELIMITER << control_clk.getElapsedTime() << DELIMITER;
 }
 
 /*----|Public: Test related functions
