@@ -47,6 +47,7 @@ public:
 	void printEncodersInfo();
 	void printRotations();
 	void printMPUInfo();
+	void printAccelInfo();
 	void printPosition();
 	void printVelocities();
 	void printTime();
@@ -95,6 +96,8 @@ private:
 
 	const int READ_ENCODERS_TIME;
 	const int READ_MPU_TIME;
+
+	const float G_FACTOR;
 
 	//Sonars
 	XLMaxSonarEZ right_sonar;
@@ -154,6 +157,11 @@ private:
 
 	float euler_radians[3];
 	float last_euler_radians[3];
+
+	float sonars[3];// esquerda,direita,centro
+	float last_sonars[3];
+	bool first_sonars_sample;
+
 	bool first_mpu_sample;
 	float initial_euler_radians;
 	MPU9150Lib MPU;
@@ -175,6 +183,10 @@ private:
 
 	float tested_pps;
 
+	float accel[3];
+	float accel_offset[3];
+	float last_accel[3];
+
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
@@ -187,6 +199,7 @@ private:
 	void updatePosition(float dT);
 	void resetPosition(Position new_position);
 	void readMPU();
+	void readSonars();
 	void updateSpeeds();
 	float ppsToRps(int32_t pps);
 	float getRightSpeed();

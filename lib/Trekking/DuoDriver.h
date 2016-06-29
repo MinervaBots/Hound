@@ -40,8 +40,8 @@ public:
   uint32_t getLeftEncoder();
   uint32_t getRightEncoder();
 
-  uint32_t getLeftPPS();
-  uint32_t getRightPPS();
+  int getLeftPPS();
+  int getRightPPS();
 
   void setMaxPPS(uint32_t MAX_PPS);
 
@@ -77,7 +77,7 @@ protected:
     float kp_left, ki_left, kd_left;
 
     uint32_t MAX_PPS;
-    uint32_t last_l_pps, last_r_pps;
+    int last_l_pps, last_r_pps;
 
     PIDControler r_pid;
   	PIDControler l_pid;

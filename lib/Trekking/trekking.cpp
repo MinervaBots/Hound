@@ -1,3 +1,4 @@
+//obs: LEFT IS RIGHT; RIGHT IS LEFT
 #include "trekking.h"
 
 
@@ -29,7 +30,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	MAX_ANGULAR_VELOCITY(TWO_PI_R*(2*SAFE_RPS)/(2*DISTANCE_FROM_RX)),
 
 	//Distances for Ultrasound
-	MAX_SONAR_DISTANCE(200),
+	MAX_SONAR_DISTANCE(90), //200
 	MIN_SONAR_DISTANCE(30),
 
 	//Motors
@@ -50,6 +51,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 
 	READ_ENCODERS_TIME(30),
 	READ_MPU_TIME(30),
+	G_FACTOR(16*9.8),
 
 	//Sonars
 	right_sonar(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN),
@@ -182,6 +184,7 @@ void Trekking::update() {
 		log << DELIMITER << driver->getLeftPPS();
 		log << DELIMITER << driver->getRightPPS();
 		log << DELIMITER << tested_pps;
+		printVelocities();// [V e W]
 		log << log_endl;
 	}
 
@@ -387,6 +390,8 @@ void Trekking::updatePosition(float dT){
 	//Get the current orientation and speeds
 	// readMPU();
 	updateSpeeds();
+	// float angular_speed = getAngularSpeed();
+	//float theta = angular_speed*dT;//euler_radians[2] - initial_euler_radians; //in rad
 	float theta = euler_radians[2] - initial_euler_radians; //in rad
 	float linear_speed = getLinearSpeed();
 
@@ -415,10 +420,22 @@ void Trekking::readMPU(){
 		float b = MPU.m_dmpEulerPose[1];
 		float c = MPU.m_dmpEulerPose[2];
 
+		accel[0] = MPU.m_calAccel[0]/G_FACTOR - accel_offset[0];
+		accel[1] = MPU.m_calAccel[1]/G_FACTOR - accel_offset[1];
+		accel[2] = MPU.m_calAccel[2]/G_FACTOR - accel_offset[2];
+
+		// MPU.m_rawAccel
+
 		if (first_mpu_sample){
 			euler_radians[0] = MPU.m_dmpEulerPose[0];
 			euler_radians[1] = MPU.m_dmpEulerPose[1];
 			euler_radians[2] = MPU.m_dmpEulerPose[2];
+
+			accel_offset[0] = MPU.m_calAccel[0]/G_FACTOR;
+			accel_offset[1] = MPU.m_calAccel[1]/G_FACTOR;
+			accel_offset[2] = MPU.m_calAccel[2]/G_FACTOR;
+
+
 			first_mpu_sample = false;
 		}
 		else {
@@ -434,9 +451,9 @@ void Trekking::readMPU(){
 			float b_std = sqrt(pow(last_euler_radians[1] - b_med,2) + pow(b - b_med,2));
 			float c_std = sqrt(pow(last_euler_radians[2] - c_med,2) + pow(c - c_med,2));
 
-			if (a_std < 1){euler_radians[0] = a;}
-			if (b_std < 1){euler_radians[1] = b;}
-			if (c_std < 1){euler_radians[2] = c;}
+			if (a_std < 10){euler_radians[0] = a;}
+			if (b_std < 10){euler_radians[1] = b;}
+			if (c_std < 10){euler_radians[2] = c;}
 		}
 	}
 }
@@ -525,24 +542,64 @@ void Trekking::search(float dT) {
 	}
 }
 
-void Trekking::refinedSearch(float dT) {
-	// data
+void Trekking::readSonars(){
+	delay(200); // delay to read sonars well
 	sonar_list.read();
-	float sonars[3]; // esquerda,direita,centro
-	sonars[0]=left_sonar.getDistance();
-	sonars[1]=center_sonar.getDistance();
-	sonars[2]=right_sonar.getDistance();
-	float refLinear = MAX_LINEAR_VELOCITY/2; // it's the fastest it can go and still read the sonars well
+
+	float a =left_sonar.getDistance();
+	float b =center_sonar.getDistance();
+	float c =right_sonar.getDistance();
+
+	if (a == 0) {a = MAX_SONAR_DISTANCE + 1;}
+	if (b == 0) {b = MAX_SONAR_DISTANCE + 1;}
+	if (c == 0) {c = MAX_SONAR_DISTANCE + 1;}
+
+	//float sonars[3];
+	//float last_sonars[3];
+
+	if (first_sonars_sample){
+		first_sonars_sample = false;
+
+		sonars[0] = a;
+		sonars[1] = b;
+		sonars[2] = c;
+	}
+	else {
+		last_sonars[0] = sonars[0];
+		last_sonars[1] = sonars[1];
+		last_sonars[2] = sonars[2];
+
+		float b_med = (last_sonars[1] + b)/2;
+		float c_med = (last_sonars[2] + c)/2;
+		float a_med = (last_sonars[0] + a)/2;
+
+		float b_std = sqrt(pow(last_sonars[1] - b_med,2) + pow(b - b_med,2));
+		float a_std = sqrt(pow(last_sonars[0] - a_med,2) + pow(a - a_med,2));
+		float c_std = sqrt(pow(last_sonars[2] - c_med,2) + pow(c - c_med,2));
+
+		if (a_std < 10){sonars[0] = a;}
+		if (b_std < 10){sonars[1] = b;}
+		if (c_std < 10){sonars[2] = c;}
+	}
+}
+
+
+void Trekking::refinedSearch(float dT) {
+
+	// data
+	readSonars();
+
+	float refLinear = MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
 	float minFactor = 0.25*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
-	float refAngular = MAX_ANGULAR_VELOCITY/2; // it's the fastest it can go and still read the sonars well
-	float matrixW[] = {1, 0, -1};
+	float refAngular = MAX_ANGULAR_VELOCITY; // it's the fastest it can go and still read the sonars well
+	float matrixW[] = {-1, 0, 1};
 
 	// processing
 	if (sonars[1]<=MIN_SONAR_DISTANCE){
 		operation_mode = &Trekking::lighting;
 		controlMotors(0,0,false,0);
 	}
-	else if (sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE && sonars[2]>MAX_SONAR_DISTANCE){
+	else if ((sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE && sonars[2]>MAX_SONAR_DISTANCE)){
 		// WE COULD TRY TO USE THE MPU THETA DATUM TO DETERMINE TO WHICH SIDE WE SHOULD TURN!!
 		controlMotors(0,refAngular,false,0);
 	}
@@ -616,6 +673,7 @@ void Trekking::reset() {
 	is_testing_refinedSearch = false;
 	is_testing_search = false;
 	first_mpu_sample = true;
+	first_sonars_sample = true;
 	current_target_index = 0;
 	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
 	left_vel_ref = 0;
@@ -765,17 +823,19 @@ void Trekking::debug() {
 		finishLogLine();
 	}
 	else if(current_command == 'm') {
+		current_command = ' ';
 		log.debug("debug command", "print mpu");
 		log << DEBUG;
-		log << DELIMITER << "init";
 		log << DELIMITER << "alpha";
 		log << DELIMITER << "beta";
 		log << DELIMITER << "theta" << log_endl;
-
-		log << DELIMITER << initial_euler_radians;
-		printMPUInfo();
-
-		finishLogLine();
+		while (current_command != 'm'){
+			if(command_stream->available()) {
+				current_command = command_stream->read();
+			}
+				printMPUInfo();
+				finishLogLine();
+		}
 	}
 	else if(current_command == 'o') {
 		current_command = ' ';
@@ -789,6 +849,21 @@ void Trekking::debug() {
 				current_command = command_stream->read();
 			}
 				printSonarInfo();
+				finishLogLine();
+		}
+	}
+	else if(current_command == 'a') {
+		current_command = ' ';
+		log.debug("debug command", "printing accels");
+		log << DEBUG;
+		log << DELIMITER << "x";
+		log << DELIMITER << "y";
+		log << DELIMITER << "z" << log_endl;
+		while (current_command != 'a'){
+			if(command_stream->available()) {
+				current_command = command_stream->read();
+			}
+				printAccelInfo();
 				finishLogLine();
 		}
 	}
@@ -813,14 +888,27 @@ void Trekking::debug() {
 	else if(current_command == 'x') {
 		if(!is_testing_openloop){
 			reset();
-			log.debug("debug command", "testing open motors in open loop");
+			log.debug("debug command", "testing open motors in open loop: linear vel");
 		}
 		is_testing_openloop = !is_testing_openloop;
+
 		driver->setLeftPPS(is_testing_openloop*tested_pps);
 		driver->setRightPPS(is_testing_openloop*tested_pps);
 		elapsed_time = 0;
-			log << log_endl;
-		// control_clk.reset();
+		log << '\\' <<  log_endl;
+	}
+	else if(current_command == 'y') {
+		if(!is_testing_openloop){
+			reset();
+			log.debug("debug command", "testing open motors in open loop: angular vel");
+		}
+		is_testing_openloop = !is_testing_openloop;
+
+		driver->setLeftPPS(-is_testing_openloop*tested_pps);
+		driver->setRightPPS(is_testing_openloop*tested_pps);
+
+		elapsed_time = 0;
+		log << '\\' <<  log_endl;
 	}
 	else if(current_command == 'E') {
 		if(!is_testing_search){
@@ -850,7 +938,8 @@ void Trekking::debug() {
 
 void Trekking::printSonarInfo()
 {
-	sonar_list.read();
+	readSonars();
+	// sonar_list.read();
 	log << DELIMITER << left_sonar.getDistance();
 	log << DELIMITER << center_sonar.getDistance();
 	log << DELIMITER << right_sonar.getDistance();
@@ -879,6 +968,14 @@ void Trekking::printMPUInfo()
 	log << DELIMITER << euler_radians[2]*180/PI;
 	log << DELIMITER;
 
+}
+
+void Trekking::printAccelInfo()
+{
+	log << DELIMITER << accel[0];
+	log << DELIMITER << accel[1];
+	log << DELIMITER << accel[2];
+	log << DELIMITER;
 }
 
 void Trekking::printPosition(){

@@ -172,12 +172,12 @@ uint32_t DuoDriver::getLeftEncoder(){
   return roboclaw.ReadEncM2(input, &status_left, &valid_left);
 }
 
-uint32_t DuoDriver::getRightPPS(){
+int DuoDriver::getRightPPS(){
   last_r_pps = roboclaw.ReadSpeedM1(input, &status_right, &valid_right);
   return last_r_pps;
 }
 
-uint32_t DuoDriver::getLeftPPS(){
+int DuoDriver::getLeftPPS(){
   last_l_pps = roboclaw.ReadSpeedM2(input, &status_left, &valid_left);
   return last_l_pps;
 }
