@@ -16,8 +16,6 @@
 #define ACKNOWLEDGEMENT 'a'
 #define TOKEN 			','
 #define RESET 			'r'
-#define LIGHT_ON 		'l'
-#define LIGHT_OFF 		'o'
 
 class EncoderList: public LinkedList<SimpleEncoder*> {
 public:
