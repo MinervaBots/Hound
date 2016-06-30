@@ -106,6 +106,7 @@ private:
 	SonarList sonar_list;
 
 	LinkedList<Position *> targets;
+	LinkedList<Position *> obstacles;
 
 	Position init_position;
 

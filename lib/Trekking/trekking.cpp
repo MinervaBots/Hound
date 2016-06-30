@@ -61,6 +61,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	sonar_list(Sonar::CHAIN),
 
 	targets(),
+	obstacles(),
 	init_position(),
 	encoder_stream(&Serial2),
 
