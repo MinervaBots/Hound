@@ -579,14 +579,16 @@ void Trekking::readSonars(){
 		float c_std = sqrt(pow(last_sonars[2] - c_med,2) + pow(c - c_med,2));
 
 		if (a_std < 10){sonars[0] = a;}
+		else {sonars[0] = a_med;}
 		if (b_std < 10){sonars[1] = b;}
+		else {sonars[1] = b_med;}
 		if (c_std < 10){sonars[2] = c;}
+		else {sonars[2] = c_med;}
 	}
 }
 
 
 void Trekking::refinedSearch(float dT) {
-
 	// data
 	readSonars();
 
