@@ -25,18 +25,37 @@ const int ROBOCLAW_TIMEOUT = 10000;
 /*
 	Sonars
 */
-const byte LEFT_SONAR_RX_PIN = 48;
+const byte LEFT_SONAR_RX_PIN = A12;
 const byte LEFT_SONAR_TX_PIN = A11;
-const byte CENTER_SONAR_RX_PIN = 53;
+const byte CENTER_SONAR_RX_PIN = 54;
 const byte CENTER_SONAR_TX_PIN = A10;
-const byte RIGHT_SONAR_RX_PIN = 53;
+const byte RIGHT_SONAR_RX_PIN = 54;
 const byte RIGHT_SONAR_TX_PIN = A7;
+
+/*
+	Colors
+*/
+const byte LEFT_COLOR_OUTPUT = A13;
+const byte LEFT_COLOR_S0 = 53;
+const byte LEFT_COLOR_S1 = 52;
+const byte LEFT_COLOR_S2 = 50;
+const byte LEFT_COLOR_S3 = 48;
+const byte CENTER_COLOR_OUTPUT = A14;
+const byte CENTER_COLOR_S0 = 46;
+const byte CENTER_COLOR_S1 = 44;
+const byte CENTER_COLOR_S2 = 42;
+const byte CENTER_COLOR_S3 = 40;
+const byte RIGHT_COLOR_OUTPUT = A15;
+const byte RIGHT_COLOR_S0 = 38;
+const byte RIGHT_COLOR_S1 = 36;
+const byte RIGHT_COLOR_S2 = 34;
+const byte RIGHT_COLOR_S3 = 32;
 
 
 /*
 	Sirene
 */
-const byte SIRENE_PIN = 12;
+const byte SIRENE_PIN = A0;
 
 /*
 	Alert led
