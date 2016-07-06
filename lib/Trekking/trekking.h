@@ -11,6 +11,7 @@
 #include "PIDControler.h"
 #include "../Robot/DualDriver.h"
 #include "DuoDriver.h"
+#include "TCS230.h"
 
 #include "../I2CDev/I2Cdev.h"
 #include "../MPU9150Lib/MPU9150Lib.h"
@@ -76,6 +77,9 @@ private:
 	const float MAX_SONAR_DISTANCE;
 	const float MIN_SONAR_DISTANCE; // [m]
 
+	//White color parameter for Color Sensors
+	const int WHITE_VALUE;
+
 	//Motors
 	const byte MAX_MOTOR_PWM;
 	const byte MIN_MOTOR_PWM;
@@ -102,6 +106,11 @@ private:
 	XLMaxSonarEZ left_sonar;
 	XLMaxSonarEZ center_sonar;
 	SonarList sonar_list;
+
+	//Color Sensors
+	TCS230 right_color;
+	TCS230 center_color;
+	TCS230 left_color;
 
 	LinkedList<Position *> targets;
 	LinkedList<Position *> obstacles;
@@ -199,6 +208,7 @@ private:
 	void resetPosition(Position new_position);
 	void readMPU();
 	void readSonars();
+	bool readColors();
 	void updateSpeeds();
 	float ppsToRps(int32_t pps);
 	float getRightSpeed();

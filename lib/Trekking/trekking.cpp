@@ -33,6 +33,9 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	MAX_SONAR_DISTANCE(90), //200
 	MIN_SONAR_DISTANCE(30),
 
+	//White color parameter for Color Sensors
+	WHITE_VALUE(166),
+
 	//Motors
 	MAX_MOTOR_PWM(130),
 	MIN_MOTOR_PWM(100),
@@ -59,6 +62,11 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	center_sonar(CENTER_SONAR_TX_PIN, CENTER_SONAR_RX_PIN),
 
 	sonar_list(Sonar::CHAIN),
+
+	//Color Sensors
+	right_color(RIGHT_COLOR_S0,RIGHT_COLOR_S1,RIGHT_COLOR_S2,RIGHT_COLOR_S3,RIGHT_COLOR_OUTPUT,WHITE_VALUE),
+	center_color(CENTER_COLOR_S0,CENTER_COLOR_S1,CENTER_COLOR_S2,CENTER_COLOR_S3,CENTER_COLOR_OUTPUT,WHITE_VALUE),
+	left_color(LEFT_COLOR_S0,LEFT_COLOR_S1,LEFT_COLOR_S2,LEFT_COLOR_S3,LEFT_COLOR_OUTPUT,WHITE_VALUE),
 
 	targets(),
 	obstacles(),
@@ -459,6 +467,63 @@ void Trekking::readMPU(){
 	}
 }
 
+void Trekking::readSonars(){
+	delay(200); // delay to read sonars well
+	sonar_list.read();
+
+	float a =left_sonar.getDistance();
+	float b =center_sonar.getDistance();
+	float c =right_sonar.getDistance();
+
+	if (a == 0) {a = MAX_SONAR_DISTANCE + 1;}
+	if (b == 0) {b = MAX_SONAR_DISTANCE + 1;}
+	if (c == 0) {c = MAX_SONAR_DISTANCE + 1;}
+
+	//float sonars[3];
+	//float last_sonars[3];
+
+	if (first_sonars_sample){
+		first_sonars_sample = false;
+
+		sonars[0] = a;
+		sonars[1] = b;
+		sonars[2] = c;
+	}
+	else {
+		last_sonars[0] = sonars[0];
+		last_sonars[1] = sonars[1];
+		last_sonars[2] = sonars[2];
+
+		float b_med = (last_sonars[1] + b)/2;
+		float c_med = (last_sonars[2] + c)/2;
+		float a_med = (last_sonars[0] + a)/2;
+
+		float b_std = sqrt(pow(last_sonars[1] - b_med,2) + pow(b - b_med,2));
+		float a_std = sqrt(pow(last_sonars[0] - a_med,2) + pow(a - a_med,2));
+		float c_std = sqrt(pow(last_sonars[2] - c_med,2) + pow(c - c_med,2));
+
+		if (a_std < 10){sonars[0] = a;}
+		else {sonars[0] = a_med;}
+		if (b_std < 10){sonars[1] = b;}
+		else {sonars[1] = b_med;}
+		if (c_std < 10){sonars[2] = c;}
+		else {sonars[2] = c_med;}
+	}
+}
+
+bool Trekking::readColors(){
+	bool white[3];
+	white[0] = left_color.isWhite();
+	white[1] = center_color.isWhite();
+	white[2] = right_color.isWhite();
+	int count = 0;
+	for (int i=0;i<3;i++){
+		if (white[i]==true) count++;
+		if (count>1) return true;
+	}
+	return false;
+}
+
 void Trekking::updateSpeeds(){
 	l_rotations_per_sec = ppsToRps(driver->getLeftPPS());
 	r_rotations_per_sec = ppsToRps(driver->getRightPPS());
@@ -542,51 +607,6 @@ void Trekking::search(float dT) {
 		finishLogLine();
 	}
 }
-
-void Trekking::readSonars(){
-	delay(200); // delay to read sonars well
-	sonar_list.read();
-
-	float a =left_sonar.getDistance();
-	float b =center_sonar.getDistance();
-	float c =right_sonar.getDistance();
-
-	if (a == 0) {a = MAX_SONAR_DISTANCE + 1;}
-	if (b == 0) {b = MAX_SONAR_DISTANCE + 1;}
-	if (c == 0) {c = MAX_SONAR_DISTANCE + 1;}
-
-	//float sonars[3];
-	//float last_sonars[3];
-
-	if (first_sonars_sample){
-		first_sonars_sample = false;
-
-		sonars[0] = a;
-		sonars[1] = b;
-		sonars[2] = c;
-	}
-	else {
-		last_sonars[0] = sonars[0];
-		last_sonars[1] = sonars[1];
-		last_sonars[2] = sonars[2];
-
-		float b_med = (last_sonars[1] + b)/2;
-		float c_med = (last_sonars[2] + c)/2;
-		float a_med = (last_sonars[0] + a)/2;
-
-		float b_std = sqrt(pow(last_sonars[1] - b_med,2) + pow(b - b_med,2));
-		float a_std = sqrt(pow(last_sonars[0] - a_med,2) + pow(a - a_med,2));
-		float c_std = sqrt(pow(last_sonars[2] - c_med,2) + pow(c - c_med,2));
-
-		if (a_std < 10){sonars[0] = a;}
-		else {sonars[0] = a_med;}
-		if (b_std < 10){sonars[1] = b;}
-		else {sonars[1] = b_med;}
-		if (c_std < 10){sonars[2] = c;}
-		else {sonars[2] = c_med;}
-	}
-}
-
 
 void Trekking::refinedSearch(float dT) {
 	// data
