@@ -26,15 +26,15 @@ public:
     // This method reads the primary colors value(proportional);
     void color();
 
-     //This method is to set the values of red, green and white when the sensor is reading the color you want to detect;
-     //White is the default, to calibrate you need to put the sensor next to the surface you want to detect the color for, and 
-     //call the method giving, as argument, the name of the color you want to set.
+    //This method is to set the values of red, green and white when the sensor is reading the color you want to detect;
+    //White is the default, to calibrate you need to put the sensor next to the surface you want to detect the color for, and 
+    //call the method giving, as argument, the name of the color you want to set.
     void calibrate(char t_color[10]);
 	
-	  //This metod prints 3 numbers each one of them associated to one of primary colors;
-	  void printRGB();
+	//This metod prints 3 numbers each one of them associated to one of primary colors;
+	void printRGB();
 	
-	 //This method tells if the color read is the same that you've calibrated the sensor ;
+	//This method tells if the color read is the same that you've calibrated the sensor ;
     bool isTheColor();   
     
     virtual ~TCS230();
@@ -51,12 +51,12 @@ private:
     float min_green;
     float min_blue;
     char my_color[10];
-	  //Variables that keep the pins values you've choose;
+	//Variables that keep the pins values you've choose;
     int s0_pin;
-	  int s1_pin;
-	  int s2_pin;
-	  int s3_pin;
-	  int out_pin;
+	int s1_pin;
+	int s2_pin;
+	int s3_pin;
+	int out_pin;
    
 };
 
