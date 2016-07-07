@@ -6,8 +6,8 @@
 Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	Robot(driver_pointer),
 
-	DELIMITER(';'),
-	// DELIMITER('\t'),
+	//DELIMITER(';'),
+	DELIMITER('\t'),
 
 	GEAR_RATE(19),
 	PULSES_PER_ROTATION(64),
@@ -54,7 +54,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 
 	READ_ENCODERS_TIME(30),
 	READ_MPU_TIME(30),
-	G_FACTOR(16*9.8),
+	G_FACTOR(160*9.8),
 
 	//Sonars
 	right_sonar(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN),
@@ -175,7 +175,9 @@ void Trekking::update() {
   last_update_time = millis();
   float dT = delta_t/1000.00;
 
-	elapsed_time += dT;
+
+
+	// finishLogLine();
 
 	(this->*operation_mode)(dT); //Call the current operation
 	updatePosition(dT); //updatePosition
@@ -298,15 +300,15 @@ void Trekking::controlMotors(float v, float w, bool enable_pid, float dT){
         l_limited = -SAFE_RPS;
     }
 	}
-	if(is_testing_search || is_testing_refinedSearch){
-		log << "<DESEJADO>";
-		log << DELIMITER << v;
-		log << DELIMITER << w;
-		log << DELIMITER << left_rotation;
-		log << DELIMITER << right_rotation;
-		log << DELIMITER << l_limited;
-		log << DELIMITER << r_limited;
-	}
+	// if(is_testing_search || is_testing_refinedSearch){
+	// 	log << "<DESEJADO>";
+	// 	log << DELIMITER << v;
+	// 	log << DELIMITER << w;
+	// 	log << DELIMITER << left_rotation;
+	// 	log << DELIMITER << right_rotation;
+	// 	log << DELIMITER << l_limited;
+	// 	log << DELIMITER << r_limited;
+	// }
 	float r_qpps = r_limited*GEAR_RATE*PULSES_PER_ROTATION;
 	float l_qpps = l_limited*GEAR_RATE*PULSES_PER_ROTATION;
 
@@ -425,23 +427,28 @@ void Trekking::resetPosition(Position new_position){
 
 void Trekking::readMPU(){
 	if(MPU.read()) {
-		float a = MPU.m_dmpEulerPose[0];
-		float b = MPU.m_dmpEulerPose[1];
+		float b = MPU.m_dmpEulerPose[0];
+		float a = MPU.m_dmpEulerPose[1];
 		float c = MPU.m_dmpEulerPose[2];
 
-		accel[0] = MPU.m_calAccel[0]/G_FACTOR - accel_offset[0];
-		accel[1] = MPU.m_calAccel[1]/G_FACTOR - accel_offset[1];
-		accel[2] = MPU.m_calAccel[2]/G_FACTOR - accel_offset[2];
+		accel[1] =  MPU.m_calAccel[0]/G_FACTOR;// - accel_offset[0];
+		accel[0] = -MPU.m_calAccel[1]/G_FACTOR;// - accel_offset[1];
+		accel[2] =  MPU.m_calAccel[2]/G_FACTOR;// - accel_offset[2];
+
+		Wb[1] = MPU.m_rawGyro[0];
+		Wb[0] = MPU.m_rawGyro[1];
+		Wb[2] = MPU.m_rawGyro[2];
 
 		// MPU.m_rawAccel
+		// m_calAccel
 
 		if (first_mpu_sample){
-			euler_radians[0] = MPU.m_dmpEulerPose[0];
-			euler_radians[1] = MPU.m_dmpEulerPose[1];
+			euler_radians[1] = MPU.m_dmpEulerPose[0];
+			euler_radians[0] = MPU.m_dmpEulerPose[1];
 			euler_radians[2] = MPU.m_dmpEulerPose[2];
 
-			accel_offset[0] = MPU.m_calAccel[0]/G_FACTOR;
-			accel_offset[1] = MPU.m_calAccel[1]/G_FACTOR;
+			accel_offset[1] = MPU.m_calAccel[0]/G_FACTOR;
+			accel_offset[0] = MPU.m_calAccel[1]/G_FACTOR;
 			accel_offset[2] = MPU.m_calAccel[2]/G_FACTOR;
 
 
@@ -599,9 +606,13 @@ void Trekking::search(float dT) {
 	}
 	// Log for debug
 	if(is_testing_search){
-		log << DELIMITER << "<REAL>";
+		//log << DELIMITER << "<REAL>";
 		printTime();
-		printVelocities();// [V e W]
+		log << DELIMITER << dT;
+		// printVelocities();// [V e W]
+		// elapsed_time += dT;
+		printAccelInfo();
+		printGyroInfo();
 		printRotations(); // [L_RPS e R_RPS]
 		printPosition();  // [x y theta]
 		finishLogLine();
@@ -846,19 +857,13 @@ void Trekking::debug() {
 		finishLogLine();
 	}
 	else if(current_command == 'm') {
-		current_command = ' ';
 		log.debug("debug command", "print mpu");
 		log << DEBUG;
 		log << DELIMITER << "alpha";
 		log << DELIMITER << "beta";
 		log << DELIMITER << "theta" << log_endl;
-		while (current_command != 'm'){
-			if(command_stream->available()) {
-				current_command = command_stream->read();
-			}
-				printMPUInfo();
-				finishLogLine();
-		}
+		printMPUInfo();
+		finishLogLine();
 	}
 	else if(current_command == 'o') {
 		current_command = ' ';
@@ -876,19 +881,13 @@ void Trekking::debug() {
 		}
 	}
 	else if(current_command == 'a') {
-		current_command = ' ';
 		log.debug("debug command", "printing accels");
 		log << DEBUG;
 		log << DELIMITER << "x";
 		log << DELIMITER << "y";
 		log << DELIMITER << "z" << log_endl;
-		while (current_command != 'a'){
-			if(command_stream->available()) {
-				current_command = command_stream->read();
-			}
-				printAccelInfo();
-				finishLogLine();
-		}
+		printAccelInfo();
+		finishLogLine();
 	}
 	else if(current_command == 'b') {
 		current_command = ' ';
@@ -998,6 +997,14 @@ void Trekking::printAccelInfo()
 	log << DELIMITER << accel[0];
 	log << DELIMITER << accel[1];
 	log << DELIMITER << accel[2];
+	log << DELIMITER;
+}
+
+void Trekking::printGyroInfo()
+{
+	log << DELIMITER << Wb[0];
+	log << DELIMITER << Wb[1];
+	log << DELIMITER << Wb[2];
 	log << DELIMITER;
 }
 

@@ -49,6 +49,7 @@ public:
 	void printAccelInfo();
 	void printPosition();
 	void printVelocities();
+	void printGyroInfo();
 	void printTime();
 	void finishLogLine();
 
@@ -192,6 +193,7 @@ private:
 	float tested_pps;
 
 	float accel[3];
+	float Wb[3];
 	float accel_offset[3];
 	float last_accel[3];
 
