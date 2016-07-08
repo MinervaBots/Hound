@@ -70,7 +70,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 
 	targets(),
 	obstacles(),
-	init_position(),
+	init_position(3, 3, 0),
 	encoder_stream(&Serial2),
 
 	//Timers
@@ -99,7 +99,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	mpu_timer.setInterval(READ_MPU_TIME);
 	mpu_timer.start(); //Must read the mpu all the time
 
-	resetPosition(Position(0,0,0));
+	resetPosition(Position(3,3,0));
 
 	// encoders_timer.setInterval(READ_ENCODERS_TIME);
 	sirene_timer.setTimeout(LIGHT_DURATION);
@@ -181,6 +181,8 @@ void Trekking::update() {
 
 	(this->*operation_mode)(dT); //Call the current operation
 	updatePosition(dT); //updatePosition
+
+
 
 	// float delta_t_2 = millis() - last_update_time_2;
   // last_update_time_2 = millis();
@@ -300,15 +302,15 @@ void Trekking::controlMotors(float v, float w, bool enable_pid, float dT){
         l_limited = -SAFE_RPS;
     }
 	}
-	// if(is_testing_search || is_testing_refinedSearch){
-	// 	log << "<DESEJADO>";
-	// 	log << DELIMITER << v;
-	// 	log << DELIMITER << w;
-	// 	log << DELIMITER << left_rotation;
-	// 	log << DELIMITER << right_rotation;
-	// 	log << DELIMITER << l_limited;
-	// 	log << DELIMITER << r_limited;
-	// }
+	if(is_testing_search || is_testing_refinedSearch){
+		log << "<DESEJADO>";
+		log << DELIMITER << v;
+		log << DELIMITER << w;
+		log << DELIMITER << left_rotation;
+		log << DELIMITER << right_rotation;
+		log << DELIMITER << l_limited;
+		log << DELIMITER << r_limited;
+	}
 	float r_qpps = r_limited*GEAR_RATE*PULSES_PER_ROTATION;
 	float l_qpps = l_limited*GEAR_RATE*PULSES_PER_ROTATION;
 
@@ -606,7 +608,7 @@ void Trekking::search(float dT) {
 	}
 	// Log for debug
 	if(is_testing_search){
-		//log << DELIMITER << "<REAL>";
+		log << DELIMITER << "<REAL>";
 		printTime();
 		log << DELIMITER << dT;
 		// printVelocities();// [V e W]
@@ -907,6 +909,25 @@ void Trekking::debug() {
 			log << log_endl;
 		}
 	}
+
+	else if(current_command == 'c') {
+		current_command = ' ';
+		log.debug("debug command", "testing colors");
+		log << DEBUG;
+		log << DELIMITER << "L";
+		log << DELIMITER << "C";
+		log << DELIMITER << "R" << log_endl;
+
+		while (current_command != 'c'){
+			if(command_stream->available()) {
+				current_command = command_stream->read();
+			}
+			printColorsInfo();
+			finishLogLine();
+		}
+	}
+
+
 	else if(current_command == 'x') {
 		if(!is_testing_openloop){
 			reset();
@@ -1032,6 +1053,16 @@ void Trekking::printTime()
 {
 	log << DELIMITER << elapsed_time << DELIMITER;
 	// log << DELIMITER << control_clk.getElapsedTime() << DELIMITER;
+}
+
+void Trekking::printColorsInfo(){
+	log << DELIMITER << left_color.getWhite();
+	log << DELIMITER << left_color.getRed();
+	log << DELIMITER << left_color.getGreen();
+	log << DELIMITER << left_color.getBlue();
+	// log << DELIMITER << center_color.getColor();
+	// log << DELIMITER << right_color.getColor();
+	log << DELIMITER;
 }
 
 /*----|Public: Test related functions

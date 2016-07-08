@@ -31,15 +31,44 @@ TCS230::TCS230(int s0_pin, int s1_pin, int s2_pin, int s3_pin, int out_pin, int 
 }
 
 // This method triggers the outputs end reads the input signal on OUT_PIN;
-void TCS230::color(){
+float TCS230::getRed(){
 	digitalWrite(this->s2_pin, LOW);
 	digitalWrite(this->s3_pin, LOW);
-	red = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
-	digitalWrite(this->s3_pin, HIGH);
-	blue = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
-	digitalWrite(this->s2_pin, HIGH);
-	green = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
+	float red = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
+	return red;
 }
+
+float TCS230::getBlue(){
+	digitalWrite(this->s2_pin, LOW);
+	digitalWrite(this->s3_pin, HIGH);
+	float blue = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
+	return blue;
+}
+
+float TCS230::getGreen(){
+  digitalWrite(this->s3_pin, HIGH);
+	digitalWrite(this->s2_pin, HIGH);
+	float green = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
+  return green;
+}
+
+float TCS230::getWhite(){
+  delay(100);
+  digitalWrite(s2_pin, HIGH); digitalWrite(s3_pin, LOW);
+  float white = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
+  // float t_white = 2*pulseIn(out_pin, HIGH)/k;
+  // float f_white = 1/t_white;
+  // int white = 0.001*f_white/scale;
+	return white;
+}
+
+// digitalWrite(this->s2_pin, LOW);
+// digitalWrite(this->s3_pin, LOW);
+// red = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
+// digitalWrite(this->s3_pin, HIGH);
+// blue = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
+// digitalWrite(this->s2_pin, HIGH);
+// green = pulseIn(this->out_pin, digitalRead(this->out_pin) == HIGH ? LOW : HIGH);
 
 //This method is to set the values of red, green and white when the sensor is reading the color you want to detect;
 //it does 20 readings and keeps the maximum and the minimum value of all readings for each color;
@@ -132,11 +161,8 @@ TCS230::~TCS230() {
 }
 
 bool TCS230::isWhite(){
-	digitalWrite(s2_pin, HIGH); digitalWrite(s3_pin, LOW);
-  float t_white = 2*pulseIn(out_pin, HIGH)/k;
-  float f_white = 1/t_white;
-  int white = 0.001*f_white/scale;
-	return (white >= white_value);
+	int color = getWhite();
+	return (color >= white_value);
 }
 
 void TCS230::setWhiteValue(int value){

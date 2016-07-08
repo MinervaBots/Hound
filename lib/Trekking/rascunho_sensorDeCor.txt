@@ -3,12 +3,13 @@
  * 		bool colors[3];
  *		////bool readColors();
  *		bool begin_retreat;
+ * 		Position dodge[3];
+ *		int current_dodge;
+ *
  * In Trekking::reset()
- *		begin_retreat=true;
+ *		////begin_retreat=true;
  *
- * Add setWhiteColor(...) in Trekking_Mega.ino? Ou talvez mudar o valor no inicializador
- *
- * Add pins and information about the color sensors
+ * Conferir se useremos 2 ou 3 sensores
  */
 
 
@@ -20,12 +21,23 @@ void Trekking::refinedSearch(float dT) {
 	float minFactor = 0.25*MAX_LINEAR_VELOCITY;
 	float refAngular = MAX_ANGULAR_VELOCITY/2;
 	float matrixW[] = {1, 0, -1};
+	float dodgeDistance = 40;
 
 	// processing
 	if (sonars[1]<=MIN_SONAR_DISTANCE){
 		if (!readColors()){
 			obstacles.add(current_position);
 			operation_mode = &Trekking::desvio;
+			current_dodge = 0;
+
+			float angle = current_position.getTheta();
+			Position a(current_position.getX()-dodgeDistance*cos(angle),current_position.getY()-dodgeDistance*sin(angle),-angle);
+			Position b(a.getX()+dodgeDistance*cos(angle-PI/3),a.getY()+dodgeDistance*sin(angle-PI/3),angle-PI/3);
+			Position c(b.getX()+dodgeDistance*cos(angle),b.getY()+dodgeDistance*sin(angle),angle);
+
+			dodge[0] = a;
+			dodge[1] = b;
+			dodge[2] = c;
 		}
 		else{
 			operation_mode = &Trekking::lighting;
@@ -66,31 +78,18 @@ bool Trekking::readColors(){
 }
 
 void Trekking::desvio(){	// TEM QUE SER DECLARADA!!
-	/*
-	 * Rotina de desvio
-	 *	ideia: andar para trás girando por alguns segundos, ir para frente e
-	 * contornar o obstáculo
-	 */
-	//  data
-	readSonars();
-
 	//  references
 	float v = MAX_LINEAR_VELOCITY/2;
 	float w = MAX_ANGULAR_VELOCITY/2;
 
-	if(begin_retreat==true){
-		int side = 1;
-		if (sonars[0]<sonars[2]) side = -1;
-		controlMotors(-v,side*w,false);
-		begin_retreat=false;
+	{/* colocar rotina de seguir os pontos de desvio */}
+
+	if (current_position==dodge[current_dodge]){
+		current_dodge = current_dodge + 1;
+
+		regulateControl(q_desired, dT);
 	}
-  delay(5000);    // Check time needed!!!
-
-	/*
-	 * Até agora teoricamente já temos o obstáculo fora de nosso campo de visão.
-	 * Como contorná-lo sem voltar a bater nele? Como consideramos que já
-	 * podemos voltar para a refinedSearch?
-	 */
-
-	operation_mode = &Trekking::refinedSearch;
+	if (current_dodge==3){
+			operation_mode = &Trekking::refinedSearch;
+	}
 }

@@ -37,6 +37,11 @@ public:
 	//This method tells if the color read is the same that you've calibrated the sensor ;
     bool isTheColor();
 
+    float getRed();
+    float getGreen();
+    float getBlue();
+    float getWhite();
+
     bool isWhite();
     void setWhiteValue(int value);
 

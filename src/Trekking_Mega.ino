@@ -28,7 +28,9 @@
 #include <inv_mpu_dmp_motion_driver.h>
 #include <EEPROM.h>
 
-float safety_factor = 1*0.2547; // v_linear = 1 m/s
+
+float safety_factor = 2*0.2547; // v_linear = 1 m/s
+// float safety_factor = 1*0.2547; // v_linear = 1 m/s
 // float safety_factor = 4*0.055;    // v_ang = 2pi rad/s
 
 
@@ -39,9 +41,10 @@ DuoDriver* driver = new DuoDriver(TX_MOTOR_PIN,
 
 Trekking trekking(safety_factor, driver);
 
-Position *cone_1 = new Position(4, 0, 0);
-Position *cone_2 = new Position(0, 0, 0);
-Position *cone_3 = new Position(0, 0, 0);
+Position *cone_1 = new Position(13, 8, 0);
+// Position *cone_1 = new Position(40, 20, 0);
+// Position *cone_2 = new Position(0, 0, 0);
+// Position *cone_3 = new Position(0, 0, 0);
 
 
 void setup() {

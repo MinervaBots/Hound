@@ -51,6 +51,7 @@ public:
 	void printVelocities();
 	void printGyroInfo();
 	void printTime();
+	void printColorsInfo();
 	void finishLogLine();
 
 private:
