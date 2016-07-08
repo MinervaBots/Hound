@@ -6,7 +6,7 @@
 Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	Robot(driver_pointer),
 
-	//DELIMITER(';'),
+	// DELIMITER(';'),
 	DELIMITER('\t'),
 
 	GEAR_RATE(19),
@@ -30,8 +30,8 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	MAX_ANGULAR_VELOCITY(TWO_PI_R*(2*SAFE_RPS)/(2*DISTANCE_FROM_RX)),
 
 	//Distances for Ultrasound
-	MAX_SONAR_DISTANCE(90), //200
-	MIN_SONAR_DISTANCE(30),
+	MAX_SONAR_DISTANCE(150), //200
+	MIN_SONAR_DISTANCE(40),
 
 	//White color parameter for Color Sensors
 	WHITE_VALUE(166),
@@ -628,6 +628,7 @@ void Trekking::refinedSearch(float dT) {
 	float refLinear = MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
 	float minFactor = 0.25*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
 	float refAngular = MAX_ANGULAR_VELOCITY; // it's the fastest it can go and still read the sonars well
+	float sqrSonarDistance = 42.25;	// square of the distance between the two ultrassound sensors
 	// float matrixW[] = {-1, 0, 1};
 
 	// processing
@@ -646,7 +647,7 @@ void Trekking::refinedSearch(float dT) {
 		else w = ((sonars[1]-sonars[0])*refAngular)/MAX_SONAR_DISTANCE;
 
 
-		float sinTheta = sqrt( 1 - pow((pow(sonars[1],2)-pow(sonars[0],2)+144)/(sonars[0]*sonars[1]),2));
+		float sinTheta = sqrt( 1 - pow((pow(sonars[1],2)-pow(sonars[0],2)+sqrSonarDistance)/(sonars[0]*sonars[1]),2));
 		float h = sonars[0]*sinTheta;
 		v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*h,minFactor);
 			// sonars[0]*(pow(sonars[1],2)-pow(sonars[0],2)+144)/(sonars[0]*sonars[1]) is the distance between the sonsors' line and the object being seen
@@ -1058,11 +1059,11 @@ void Trekking::printTime()
 
 void Trekking::printColorsInfo(){
 	log << DELIMITER << left_color.getWhite();
-	log << DELIMITER << left_color.getRed();
-	log << DELIMITER << left_color.getGreen();
-	log << DELIMITER << left_color.getBlue();
-	// log << DELIMITER << center_color.getColor();
-	// log << DELIMITER << right_color.getColor();
+	 //log << DELIMITER << left_color.getRed();
+	//log << DELIMITER << left_color.getGreen();
+	//log << DELIMITER << left_color.getBlue();
+	log << DELIMITER << center_color.getWhite();
+	log << DELIMITER << right_color.getWhite();
 	log << DELIMITER;
 }
 
