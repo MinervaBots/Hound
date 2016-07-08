@@ -628,27 +628,28 @@ void Trekking::refinedSearch(float dT) {
 	float refLinear = MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
 	float minFactor = 0.25*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
 	float refAngular = MAX_ANGULAR_VELOCITY; // it's the fastest it can go and still read the sonars well
-	float matrixW[] = {-1, 0, 1};
+	// float matrixW[] = {-1, 0, 1};
 
 	// processing
-	if (sonars[1]<=MIN_SONAR_DISTANCE){
+	if (sonars[0]<=MIN_SONAR_DISTANCE && sonars[1]<=MIN_SONAR_DISTANCE){
 		operation_mode = &Trekking::lighting;
 		controlMotors(0,0,false,0);
 	}
-	else if ((sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE && sonars[2]>MAX_SONAR_DISTANCE)){
+	else if (sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE){
 		// WE COULD TRY TO USE THE MPU THETA DATUM TO DETERMINE TO WHICH SIDE WE SHOULD TURN!!
 		controlMotors(0,refAngular,false,0);
 	}
 	else{
 		float w,v = 0;
-		for (int i=0;i<3;i++){
-			if (sonars[i]>MAX_SONAR_DISTANCE){sonars[i]=0;}
-			w += sonars[i]*matrixW[i];
-		}
-		w = (w*refAngular)/MAX_SONAR_DISTANCE;
-		if (sonars[1]==0) v = 0;
-		else v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*(sonars[1]),minFactor);
-		// v = refLinear*(exp(/*k*/-1.5*MAX_SONAR_DISTANCE/v)+minFactor); // we could add a small factor k to make it faster
+		if (sonars[0]>MAX_SONAR_DISTANCE) w=-refAngular;
+		else if (sonars[1]>MAX_SONAR_DISTANCE) w=-refAngular;
+		else w = ((sonars[1]-sonars[0])*refAngular)/MAX_SONAR_DISTANCE;
+
+
+		float sinTheta = sqrt( 1 - pow((pow(sonars[1],2)-pow(sonars[0],2)+144)/(sonars[0]*sonars[1]),2));
+		float h = sonars[0]*sinTheta;
+		v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*h,minFactor);
+			// sonars[0]*(pow(sonars[1],2)-pow(sonars[0],2)+144)/(sonars[0]*sonars[1]) is the distance between the sonsors' line and the object being seen
 		controlMotors(v,w,false,0);
 	}
 	if(is_testing_refinedSearch){
