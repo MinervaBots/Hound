@@ -22,7 +22,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	SAFE_PPS(MAX_PPS*safety_factor),
 
 
-	DISTANCE_FROM_RX(0.1375), // 137.5mm
+	DISTANCE_FROM_RX(0.165), // 165mm
 
 
 	//Velocities
@@ -642,7 +642,7 @@ void Trekking::refinedSearch(float dT) {
 	else{
 		float w,v = 0;
 		if (sonars[0]>MAX_SONAR_DISTANCE) w=-refAngular;
-		else if (sonars[1]>MAX_SONAR_DISTANCE) w=-refAngular;
+		else if (sonars[1]>MAX_SONAR_DISTANCE) w=refAngular;
 		else w = ((sonars[1]-sonars[0])*refAngular)/MAX_SONAR_DISTANCE;
 
 
