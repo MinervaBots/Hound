@@ -6,8 +6,8 @@
 Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	Robot(driver_pointer),
 
-	// DELIMITER(';'),
-	DELIMITER('\t'),
+	DELIMITER(';'),
+	// DELIMITER('\t'),
 
 	GEAR_RATE(19),
 	PULSES_PER_ROTATION(64),
@@ -34,7 +34,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	MIN_SONAR_DISTANCE(40),
 
 	//White color parameter for Color Sensors
-	WHITE_VALUE(166),
+	WHITE_VALUE(16),
 
 	//Motors
 	MAX_MOTOR_PWM(130),
@@ -197,7 +197,9 @@ void Trekking::update() {
 		log << DELIMITER << driver->getLeftPPS();
 		log << DELIMITER << driver->getRightPPS();
 		log << DELIMITER << tested_pps;
-		printVelocities();// [V e W]
+		printAccelInfo();
+		printGyroInfo();
+		// printVelocities();// [V e W]
 		log << log_endl;
 	}
 
@@ -265,6 +267,8 @@ void Trekking::controlMotors(float v, float w, bool enable_pid, float dT){
 
 	float r_limited, l_limited = 0;
 
+
+
 	//Limiting speeds
 	if (left_rotation < 0 && right_rotation > 0){
 		l_limited = max(left_rotation, -SAFE_RPS); // L negativo
@@ -302,15 +306,15 @@ void Trekking::controlMotors(float v, float w, bool enable_pid, float dT){
         l_limited = -SAFE_RPS;
     }
 	}
-	if(is_testing_search || is_testing_refinedSearch){
-		log << "<DESEJADO>";
-		log << DELIMITER << v;
-		log << DELIMITER << w;
-		log << DELIMITER << left_rotation;
-		log << DELIMITER << right_rotation;
-		log << DELIMITER << l_limited;
-		log << DELIMITER << r_limited;
-	}
+	// if(is_testing_search || is_testing_refinedSearch){
+	// 	log << "<DESEJADO>";
+	// 	log << DELIMITER << v;
+	// 	log << DELIMITER << w;
+	// 	log << DELIMITER << left_rotation;
+	// 	log << DELIMITER << right_rotation;
+	// 	log << DELIMITER << l_limited;
+	// 	log << DELIMITER << r_limited;
+	// }
 	float r_qpps = r_limited*GEAR_RATE*PULSES_PER_ROTATION;
 	float l_qpps = l_limited*GEAR_RATE*PULSES_PER_ROTATION;
 
@@ -323,6 +327,66 @@ void Trekking::controlMotors(float v, float w, bool enable_pid, float dT){
 			driver->setRightPPS(r_qpps);
 			driver->setLeftPPS(l_qpps);
 	}
+}
+
+void Trekking::simpleControlMotors(float v, float w){
+	//Calculating rps (ROTATIONS Per Sec)
+	float right_rotation = (v - w*DISTANCE_FROM_RX)/TWO_PI_R;
+	float left_rotation = (v + w*DISTANCE_FROM_RX)/TWO_PI_R;
+
+	float r_limited, l_limited = 0;
+
+	//Limiting speeds
+	if (left_rotation < 0 && right_rotation > 0){
+		l_limited = max(left_rotation, -MAX_RPS); // L negativo
+		r_limited = min(right_rotation, MAX_RPS); // R positivo
+	}
+	else if (left_rotation > 0 && right_rotation < 0){
+		r_limited = max(right_rotation, -MAX_RPS); // R negativo
+		l_limited = min(left_rotation, MAX_RPS);   // L positivo
+	}
+	else if (left_rotation > MAX_RPS || right_rotation > MAX_RPS){
+		if (left_rotation > right_rotation){
+			r_limited = MAX_RPS*(1- (left_rotation - right_rotation)/left_rotation);
+			l_limited = MAX_RPS;
+		}
+		else if (left_rotation < right_rotation){
+			l_limited = MAX_RPS*(1- (right_rotation - left_rotation)/right_rotation);
+			r_limited = MAX_RPS;
+		}
+		else if (left_rotation == right_rotation){
+			r_limited = MAX_RPS;
+			l_limited = MAX_RPS;
+		}
+	}
+	else if (left_rotation < -MAX_RPS || right_rotation < -MAX_RPS){
+  	if (left_rotation < right_rotation){
+    	r_limited = -MAX_RPS*(1 -(left_rotation - right_rotation)/left_rotation);
+      l_limited = -MAX_RPS;
+    }
+    else if (left_rotation > right_rotation){
+        l_limited = -MAX_RPS*(1 -(right_rotation - left_rotation)/right_rotation);
+        r_limited = -MAX_RPS;
+    }
+    else if (left_rotation == right_rotation){
+        r_limited = -MAX_RPS;
+        l_limited = -MAX_RPS;
+    }
+	}
+
+	if(is_testing_search || is_testing_refinedSearch){
+		log << "<DESEJADO>";
+		log << DELIMITER << v;
+		log << DELIMITER << w;
+		log << DELIMITER << left_rotation;
+		log << DELIMITER << right_rotation;
+	}
+
+	float r_qpps = r_limited*GEAR_RATE*PULSES_PER_ROTATION;
+	float l_qpps = l_limited*GEAR_RATE*PULSES_PER_ROTATION;
+
+	driver->setRightPPS(r_qpps);
+	driver->setLeftPPS(l_qpps);
 }
 
 void Trekking::trackTrajectory() {
@@ -365,7 +429,7 @@ void Trekking::trackTrajectory() {
 void Trekking::regulateControl(Position* q_desired, float dT) {
 	//constants to handle errors
 	const int k1 = 1.8;
-	const int k2 = 3;
+	const int k2 = 3;//3;
 	const int k3 = 1;
 
 	// getting gap between configurations
@@ -583,17 +647,27 @@ void Trekking::standby(float dT) {
 }
 
 void Trekking::search(float dT) {
+	Position *last_reset_position;
 	if(!is_tracking) {
 		log.assert("operation mode", "SEARCH");
 		// tracking_regulation_timer.start();
 		is_tracking = true;
 		q_desired = targets.get(current_target_index);
+		current_partial_index = 1;
+		correcao = false;
 	}
+
+	if(current_target_index > 0){
+    last_reset_position = targets.get(current_target_index-1);
+  }
+  else{
+    last_reset_position = &init_position;
+  }
 
 	distance_to_target = current_position.distanceFrom(q_desired);
 
 	//Colocar a condicao de proximidade
-	if(distance_to_target <= 0.5) {
+	if(distance_to_target <= MAX_SONAR_DISTANCE/100) { //sonar distance is given in cm
 	// if(distance_to_target < PROXIMITY_RADIUS) {
 	 	tracking_regulation_timer.stop();
 	 	tracking_regulation_timer.reset();
@@ -603,18 +677,53 @@ void Trekking::search(float dT) {
 	}
 	else{
 		// cartesianControl(q_desired, dT);
+		// float x0 = last_reset_position->getX();
+    // float y0 = last_reset_position->getY();
+		//
+    // float xf = q_desired->getX();
+    // float yf = q_desired->getY();
+		//
+    // float xi = x0 + (xf - x0)*current_partial_index/4;
+    // float yi = y0 + (yf - y0)*current_partial_index/4;
+
+
+		// if(!correcao){
+		// 	Position *qi = new Position(20, 20, 0);
+		// 	regulateControl(qi, dT);
+		// 	float distance_to_partial_target = current_position.distanceFrom(qi);
+		// 	if (distance_to_partial_target < 5){
+		// 			correcao = true;
+		// 	}
+		// }
+		// else{
+		// 	regulateControl(q_desired, dT);
+		//
+		// }
+
 		regulateControl(q_desired, dT);
+
+
+
+
+		// float distance_to_partial_target = current_position.distanceFrom(qi);
+    // if(distance_to_partial_target <= 1.5){
+    //   finishLogLine();
+		//
+    //   log << "Ponto Parcial " << current_partial_index << " atingido!!";
+    //   finishLogLine();
+    //   current_partial_index++;
+    // }
 		// delay(200);
 	}
 	// Log for debug
 	if(is_testing_search){
 		log << DELIMITER << "<REAL>";
-		printTime();
+		// printTime();
 		log << DELIMITER << dT;
-		// printVelocities();// [V e W]
+		printVelocities();// [V e W]
 		// elapsed_time += dT;
-		printAccelInfo();
-		printGyroInfo();
+		// printAccelInfo();
+		// printGyroInfo();
 		printRotations(); // [L_RPS e R_RPS]
 		printPosition();  // [x y theta]
 		finishLogLine();
@@ -625,20 +734,20 @@ void Trekking::refinedSearch(float dT) {
 	// data
 	readSonars();
 
-	float refLinear = MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
-	float minFactor = 0.25*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
-	float refAngular = MAX_ANGULAR_VELOCITY; // it's the fastest it can go and still read the sonars well
+	float refLinear = 1.5*MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
+	float minFactor = 0.4*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
+	float refAngular = 1.5*MAX_ANGULAR_VELOCITY; // it's the fastest it can go and still read the sonars well
 	float sqrSonarDistance = 42.25;	// square of the distance between the two ultrassound sensors
 	// float matrixW[] = {-1, 0, 1};
 
 	// processing
 	if (sonars[0]<=MIN_SONAR_DISTANCE && sonars[1]<=MIN_SONAR_DISTANCE){
 		operation_mode = &Trekking::lighting;
-		controlMotors(0,0,false,0);
+		controlMotors(0,0,false,dT);
 	}
 	else if (sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE){
 		// WE COULD TRY TO USE THE MPU THETA DATUM TO DETERMINE TO WHICH SIDE WE SHOULD TURN!!
-		controlMotors(0,refAngular,false,0);
+		controlMotors(0,refAngular,false,dT);
 	}
 	else{
 		float w,v = 0;
@@ -651,7 +760,7 @@ void Trekking::refinedSearch(float dT) {
 		float h = sonars[0]*sinTheta;
 		v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*h,minFactor);
 			// sonars[0]*(pow(sonars[1],2)-pow(sonars[0],2)+144)/(sonars[0]*sonars[1]) is the distance between the sonsors' line and the object being seen
-		controlMotors(v,w,false,0);
+		controlMotors(v,w,false,dT);
 	}
 	if(is_testing_refinedSearch){
 		log << DELIMITER << "<REAL>";

@@ -123,6 +123,7 @@ private:
 	float desired_angular_velocity;
 
 	int current_target_index;
+	int current_partial_index;
 
 	//Input states
 	bool init_button;
@@ -198,10 +199,13 @@ private:
 	float accel_offset[3];
 	float last_accel[3];
 
+	bool correcao;
+
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
 	void controlMotors(float v, float w, bool enable_pid, float dT);
+	void simpleControlMotors(float v, float w);
 	void trackTrajectory();
 	void regulateControl(Position* q_desired, float dT);
 	void cartesianControl(Position* q_desired, float dT);
