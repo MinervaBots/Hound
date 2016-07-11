@@ -104,7 +104,7 @@ private:
 	const float G_FACTOR;
 
 	//Sonars
-	XLMaxSonarEZ right_sonar;
+	// XLMaxSonarEZ right_sonar;
 	XLMaxSonarEZ left_sonar;
 	XLMaxSonarEZ center_sonar;
 	SonarList sonar_list;
@@ -139,6 +139,7 @@ private:
 
 	bool sirene_is_on;
 	bool is_tracking;
+	int is_turning;
 
 	float distance_to_target;
 
@@ -154,7 +155,7 @@ private:
 	//Timers
 	TimerForMethods<Trekking> mpu_timer;
 	TimerForMethods<Trekking> sirene_timer;
-	TimerForMethods<Trekking> tracking_regulation_timer;
+	// TimerForMethods<Trekking> tracking_regulation_timer;
 	TimerForMethods<Trekking> calibrate_angle_timer;
 	Timer control_clk;
 	float elapsed_time;
@@ -200,14 +201,16 @@ private:
 	float last_accel[3];
 
 	bool correcao;
+	float last_desired_v;
 
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
 	void controlMotors(float v, float w, bool enable_pid, float dT);
 	void simpleControlMotors(float v, float w);
+	void controlMotors2(float v, float w, bool enable_pid, float dT);
 	void trackTrajectory();
-	void regulateControl(Position* q_desired, float dT);
+	float regulateControl(Position* q_desired, float dT);
 	void cartesianControl(Position* q_desired, float dT);
 
 	/*----|Position update related functions|---------------------------------*/
