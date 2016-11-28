@@ -9,11 +9,11 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	DELIMITER(';'),
 	// DELIMITER('\t'),
 
-	GEAR_RATE(19),
+	GEAR_RATE(70),
 	PULSES_PER_ROTATION(64),
 	WHEEL_RADIUS(0.075),
 	TWO_PI_R(WHEEL_RADIUS*2*PI),
-	MAX_RPM(500), // rotations per min
+	MAX_RPM(150), // rotations per min
 	MAX_RPS(MAX_RPM/60), // rotations per sec
 	MAX_PPS(GEAR_RATE*PULSES_PER_ROTATION*MAX_RPS), // qpulses per sec
 
@@ -34,7 +34,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	MIN_SONAR_DISTANCE(40),
 
 	//White color parameter for Color Sensors
-	WHITE_VALUE(30E),
+	WHITE_VALUE(30),
 
 	//Motors
 	MAX_MOTOR_PWM(130),
