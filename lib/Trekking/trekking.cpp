@@ -83,8 +83,8 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 
 	//Streams
 	operation_mode_switch = MANUAL_MODE;
-	command_stream = &Serial1; //bluetooth on Serial1
-	log_stream = &Serial1;
+	command_stream = &Serial1; //bluetooth on Serial1; USB on Serial
+	log_stream = &Serial1; //bluetooth on Serial1; USB on Serial
 
 	log.setTarget(log_stream);
 
@@ -363,11 +363,11 @@ void Trekking::controlMotors2(float v, float w, bool enable_pid, float dT){
 	}
 	else if (left_rotation > SAFE_RPS || right_rotation > SAFE_RPS){
 		if (left_rotation > right_rotation){
-			r_limited = SAFE_RPS*(1- (left_rotation - right_rotation)/left_rotation);
+			r_limited = SAFE_RPS*(right_rotation/left_rotation);
 			l_limited = SAFE_RPS;
 		}
 		else if (left_rotation < right_rotation){
-			l_limited = SAFE_RPS*(1- (right_rotation - left_rotation)/right_rotation);
+			l_limited = SAFE_RPS*(left_rotation/right_rotation);
 			r_limited = SAFE_RPS;
 		}
 		else if (left_rotation == right_rotation){
@@ -377,11 +377,11 @@ void Trekking::controlMotors2(float v, float w, bool enable_pid, float dT){
 	}
 	else if (left_rotation < -SAFE_RPS || right_rotation < -SAFE_RPS){
   	if (left_rotation < right_rotation){
-    	r_limited = -SAFE_RPS*(1 -(left_rotation - right_rotation)/left_rotation);
+    	r_limited = -SAFE_RPS*(right_rotation/left_rotation);
       l_limited = -SAFE_RPS;
     }
     else if (left_rotation > right_rotation){
-        l_limited = -SAFE_RPS*(1 -(right_rotation - left_rotation)/right_rotation);
+        l_limited = -SAFE_RPS*(left_rotation/right_rotation);
         r_limited = -SAFE_RPS;
     }
     else if (left_rotation == right_rotation){
@@ -509,21 +509,21 @@ void Trekking::simpleControlMotors(float left_rotation, float right_rotation){
 
 float Trekking::regulateControl(Position* q_desired, float dT) {
 	//constants to handle errors
-	const int k1 = 1.8;
-	const int k2 = 3;//3;
-	const int k3 = 1;
+	const int k1 = 3;
+	const int k2 = 8;
+	const int k3 = -1.5;
 
 	// getting gap between configurations
 	Position gap = current_position.calculateGap(*q_desired);
 
 	//Angular transformation
 	float rho = sqrt( pow(gap.getX(),2) + pow(gap.getY(),2) );
-	float gamma = gap.getTheta() + atan2(gap.getY(), gap.getX());
-	float delta = gap.getTheta() - gamma;
+	float gamma = - current_position.getTheta() + atan2(gap.getY(), gap.getX());
+	float delta = - current_position.getTheta() - gamma;
 
 	//Calculating v e w
-	float v = (k1 * rho) * cos(gamma);
-	float w = k2*gamma + (k3*delta + gamma)*(k1*sin(gamma)*cos(gamma)/gamma);
+	float v = (k1 * rho);
+	float w = k2*gamma + k3*delta;
 
 	controlMotors2(v, w, false, 0);
 	distance_to_target = rho;
@@ -538,8 +538,8 @@ void Trekking::cartesianControl(Position* q_desired, float dT) {
 	Position gap = current_position.calculateGap(*q_desired);
 
 	//Calculating v e w
-	float v = k1*(gap.getX()*cos(gap.getTheta()) + gap.getY()*sin(gap.getTheta()));
-	float w = k2*(atan2(gap.getY(), gap.getX()) + gap.getTheta());
+	float v = k1*(gap.getX()*cos(current_position.getTheta()) + gap.getY()*sin(current_position.getTheta()));
+	float w = k2*(atan2(gap.getY(), gap.getX()) - current_position.getTheta());
 	controlMotors(v, w, false, dT);
 }
 
