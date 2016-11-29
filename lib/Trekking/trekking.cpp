@@ -70,7 +70,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 
 	targets(),
 	obstacles(),
-	init_position(3, 3, 0),
+	init_position(0, 0, 0),
 	encoder_stream(&Serial2),
 
 	//Timers
@@ -523,7 +523,7 @@ float Trekking::regulateControl(Position* q_desired, float dT) {
 
 	//Calculating v e w
 	float v = (k1 * rho);
-	float w = k2*gamma + k3*delta;
+	float w = -(k2*gamma + k3*delta);
 
 	controlMotors2(v, w, false, 0);
 	distance_to_target = rho;
@@ -540,7 +540,7 @@ void Trekking::cartesianControl(Position* q_desired, float dT) {
 	//Calculating v e w
 	float v = k1*(gap.getX()*cos(current_position.getTheta()) + gap.getY()*sin(current_position.getTheta()));
 	float w = k2*(atan2(gap.getY(), gap.getX()) - current_position.getTheta());
-	controlMotors(v, w, false, dT);
+	controlMotors2(v, w, false, dT);
 }
 
 
@@ -575,50 +575,17 @@ void Trekking::resetPosition(Position new_position){
 
 void Trekking::readMPU(){
 	if(MPU.read()) {
-		float b = MPU.m_dmpEulerPose[0];
-		float a = MPU.m_dmpEulerPose[1];
-		float c = MPU.m_dmpEulerPose[2];
-
-		accel[1] =  MPU.m_calAccel[0]/G_FACTOR;// - accel_offset[0];
-		accel[0] = -MPU.m_calAccel[1]/G_FACTOR;// - accel_offset[1];
-		accel[2] =  MPU.m_calAccel[2]/G_FACTOR;// - accel_offset[2];
-
-		Wb[1] = MPU.m_rawGyro[0];
-		Wb[0] = MPU.m_rawGyro[1];
-		Wb[2] = MPU.m_rawGyro[2];
-
-		// MPU.m_rawAccel
-		// m_calAccel
-
-		if (first_mpu_sample){
-			euler_radians[1] = MPU.m_dmpEulerPose[0];
-			euler_radians[0] = MPU.m_dmpEulerPose[1];
-			euler_radians[2] = MPU.m_dmpEulerPose[2];
-
-			accel_offset[1] = MPU.m_calAccel[0]/G_FACTOR;
-			accel_offset[0] = MPU.m_calAccel[1]/G_FACTOR;
-			accel_offset[2] = MPU.m_calAccel[2]/G_FACTOR;
-
-
-			first_mpu_sample = false;
-		}
-		else {
-			last_euler_radians[0] = euler_radians[0];
-			last_euler_radians[1] = euler_radians[1];
-			last_euler_radians[2] = euler_radians[2];
-
-			float a_med = (last_euler_radians[0] + a)/2;
-			float b_med  = (last_euler_radians[1] + b)/2;
-			float c_med = (last_euler_radians[2] + c)/2;
-
-			float a_std = sqrt(pow(last_euler_radians[0] - a_med,2) + pow(a - a_med,2));
-			float b_std = sqrt(pow(last_euler_radians[1] - b_med,2) + pow(b - b_med,2));
-			float c_std = sqrt(pow(last_euler_radians[2] - c_med,2) + pow(c - c_med,2));
-
-			if (a_std < 10){euler_radians[0] = a;}
-			if (b_std < 10){euler_radians[1] = b;}
-			if (c_std < 10){euler_radians[2] = c;}
-		}
+		// accel[1] =  MPU.m_calAccel[0]/G_FACTOR;// - accel_offset[0];
+		// accel[0] = -MPU.m_calAccel[1]/G_FACTOR;// - accel_offset[1];
+		// accel[2] =  MPU.m_calAccel[2]/G_FACTOR;// - accel_offset[2];
+		// Wb[1] = MPU.m_rawGyro[0];
+		// Wb[0] = MPU.m_rawGyro[1];
+		// Wb[2] = MPU.m_rawGyro[2];
+		//
+		//
+		euler_radians[1] = MPU.m_dmpEulerPose[0];
+		euler_radians[0] = MPU.m_dmpEulerPose[1];
+		euler_radians[2] = MPU.m_dmpEulerPose[2];
 	}
 }
 
@@ -757,7 +724,7 @@ void Trekking::search(float dT) {
 	distance_to_target = current_position.distanceFrom(q_desired);
 
 	//Colocar a condicao de proximidade
-	if(abs(last_desired_v) < 4 && distance_to_target <= 5){
+	if(abs(last_desired_v) < 4 && distance_to_target <= 0.5){
 	// if(distance_to_target <= MAX_SONAR_DISTANCE/100) { //sonar distance is given in cm
 	// if(distance_to_target < PROXIMITY_RADIUS) {
 		// 	tracking_regulation_timer.stop();
@@ -779,6 +746,7 @@ void Trekking::search(float dT) {
 			}
 			else{
 					regulateControl(q_desired, dT);
+					// cartesianControl(q_desired, dT);
 				}
 		}
 

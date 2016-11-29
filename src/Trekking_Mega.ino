@@ -35,7 +35,7 @@
 
 
 // float safety_factor = 2*0.2547; // v_linear = 1 m/s
-float safety_factor = 0.5; // v_linear = 1 m/s
+float safety_factor = 0.60; // v_linear = 1 m/s
 // float safety_factor = 2*0.2547; // v_linear = 1 m/s
 // float safety_factor = 4*0.055;    // v_ang = 2pi rad/s
 
@@ -48,7 +48,7 @@ DuoDriver* driver = new DuoDriver(TX_MOTOR_PIN,
 Trekking trekking(safety_factor, driver);
 // Position *cone_1 = new Position(13, 3, 0);
 // Position *cone_1 = new Position(33, -17, 0);
-Position *cone_1 = new Position(10, 0, 0);
+Position *cone_1 = new Position(10, -5, 0);
 // Position *cone_1 = new Position(40, 20, 0);
 // Position *cone_2 = new Position(30, 2, 0);
 // Position *cone_3 = new Position(6, 18, 0);
