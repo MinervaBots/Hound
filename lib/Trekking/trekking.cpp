@@ -1,4 +1,3 @@
-//obs: LEFT IS RIGHT; RIGHT IS LEFT
 #include "trekking.h"
 
 
@@ -30,7 +29,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	MAX_ANGULAR_VELOCITY(TWO_PI_R*(2*SAFE_RPS)/(2*DISTANCE_FROM_RX)),
 
 	//Distances for Ultrasound
-	MAX_SONAR_DISTANCE(300), //200
+	MAX_SONAR_DISTANCE(350), //200
 	MIN_SONAR_DISTANCE(40),
 
 	//White color parameter for Color Sensors
@@ -57,7 +56,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	G_FACTOR(160*9.8),
 
 	//Sonars
-	// right_sonar(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN),
+	right_sonar(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN),
 	left_sonar(LEFT_SONAR_TX_PIN, LEFT_SONAR_RX_PIN),
 	center_sonar(CENTER_SONAR_TX_PIN, CENTER_SONAR_RX_PIN),
 
@@ -93,13 +92,13 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	//MUST CHECK THE RIGHT ORDER ON THE BOARD
 	sonar_list.addSonar(&left_sonar);
 	sonar_list.addSonar(&center_sonar);
-	// sonar_list.addSonar(&right_sonar);
+	sonar_list.addSonar(&right_sonar);
 
 	//Timers
 	mpu_timer.setInterval(READ_MPU_TIME);
 	mpu_timer.start(); //Must read the mpu all the time
 
-	resetPosition(Position(3,3,0));
+	resetPosition(init_position);
 
 	// encoders_timer.setInterval(READ_ENCODERS_TIME);
 	sirene_timer.setTimeout(LIGHT_DURATION);
@@ -113,6 +112,8 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	ki_left = 8;    ki_right = 8;
 	kd_left = 0;    kd_right = 0;
 	bsp_left = 0.8; bsp_right = 0.8;
+
+	last_desired_refined_v = 0;
 
 	kp = 1;
 	ki = 0;
@@ -166,39 +167,14 @@ void Trekking::start() {
 void Trekking::update() {
 	loopCheck(); //read all possible inputs
 
-	//updating dT
-	// control_clk.update();
-	// float delta_t = control_clk.getElapsedTime() - last_update_time;
-	// float dT = delta_t / 1000.0;
-	// last_update_time = control_clk.getElapsedTime();
-
 	float delta_t = millis() - last_update_time;
   last_update_time = millis();
   float dT = delta_t/1000.00;
 
 	elapsed_time += delta_t;
 
-	if(is_testing_refinedSearch){
-		log << elapsed_time/1000 << DELIMITER;
-	}
-
-
-
-
-
-	// finishLogLine();
-
-	(this->*operation_mode)(dT); //Call the current operation
 	updatePosition(dT); //updatePosition
-
-
-
-	// float delta_t_2 = millis() - last_update_time_2;
-  // last_update_time_2 = millis();
-  // float dT_2 = delta_t_2/1000.00;
-	//
-	//  log << dT << '\t' << dT_2 << '\t' << (dT_2-dT)*1000 << log_endl;
-
+	(this->*operation_mode)(dT); //Call the current operation
 
 	if(is_testing_openloop){
 		log << elapsed_time*1000;
@@ -212,7 +188,6 @@ void Trekking::update() {
 		log << log_endl;
 	}
 
-	// delay(200);
 }
 
 void Trekking::emergency() {
@@ -228,24 +203,12 @@ void Trekking::emergency() {
 Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long tempo){
 	Position* destination = targets.get(current_target_index);
 	Position planned_position = Position();
-	float t = (float) tempo;
-	t /= 1000; //Mills to sec
 
-	float dirx = 1;
-	float diry = 1;
+	float planned_distance = MAX_LINEAR_VELOCITY * tempo;
 
-	// Verificando a direcao do caminho
-	if (init_position.getX() > destination->getX()){
-		dirx = -1;
-	}
-	if (init_position.getY() > destination->getY()){
-		diry = -1;
-	}
-	float planned_distance = desired_linear_velocity * t;
-
-	float p_x = init_position.getX() + planned_distance*cos(init_position.getTheta())*dirx;
-	float p_y = init_position.getY() + planned_distance*sin(init_position.getTheta())*diry;
-	float p_theta = init_position.getTheta();
+	float p_theta = atan2(destination->getY() - init_position.getY(), destination->getX() - init_position.getX());
+	float p_x = init_position.getX() + planned_distance*cos(p_theta);
+	float p_y = init_position.getY() + planned_distance*sin(p_theta);
 
 	// A posicao planejada nao pode estar depois da posicao destino
 	// X
@@ -257,14 +220,13 @@ Position Trekking::plannedPosition(bool is_trajectory_linear, unsigned long temp
 	}
 	// Y
 	if (init_position.getY() > destination->getY()){
-		p_x = max(destination->getX(),p_y);
+		p_y = max(destination->getY(),p_y);
 	}
 	else{
-		p_x = min(destination->getX(),p_y);
+		p_y = min(destination->getY(),p_y);
 	}
 
 	planned_position.set(p_x, p_y, p_theta);
-
 	return planned_position;
 }
 
@@ -413,99 +375,31 @@ void Trekking::controlMotors2(float v, float w, bool enable_pid, float dT){
 }
 
 
-void Trekking::simpleControlMotors(float left_rotation, float right_rotation){
-	//Calculating rps (ROTATIONS Per Sec)
-	float r_limited, l_limited = 0;
+void Trekking::trackTrajectory(Position* q_desired, float tracking_time) {
+	//constants to handle errors
+	const int k1 = 2;
+	const int k2 = 1;
+	const int k3 = 2;
 
-	//Limiting speeds
-	if (left_rotation < 0 && right_rotation > 0){
-		l_limited = max(left_rotation, -MAX_RPS); // L negativo
-		r_limited = min(right_rotation, MAX_RPS); // R positivo
-	}
-	else if (left_rotation > 0 && right_rotation < 0){
-		r_limited = max(right_rotation, -MAX_RPS); // R negativo
-		l_limited = min(left_rotation, MAX_RPS);   // L positivo
-	}
-	else if (left_rotation > MAX_RPS || right_rotation > MAX_RPS){
-		if (left_rotation > right_rotation){
-			r_limited = MAX_RPS*(1- (left_rotation - right_rotation)/left_rotation);
-			l_limited = MAX_RPS;
-		}
-		else if (left_rotation < right_rotation){
-			l_limited = MAX_RPS*(1- (right_rotation - left_rotation)/right_rotation);
-			r_limited = MAX_RPS;
-		}
-		else if (left_rotation == right_rotation){
-			r_limited = MAX_RPS;
-			l_limited = MAX_RPS;
-		}
-	}
-	else if (left_rotation < -MAX_RPS || right_rotation < -MAX_RPS){
-  	if (left_rotation < right_rotation){
-    	r_limited = -MAX_RPS*(1 -(left_rotation - right_rotation)/left_rotation);
-      l_limited = -MAX_RPS;
-    }
-    else if (left_rotation > right_rotation){
-        l_limited = -MAX_RPS*(1 -(right_rotation - left_rotation)/right_rotation);
-        r_limited = -MAX_RPS;
-    }
-    else if (left_rotation == right_rotation){
-        r_limited = -MAX_RPS;
-        l_limited = -MAX_RPS;
-    }
-	}
+	Position gap = current_position.calculateGap(plannedPosition(true, tracking_time));
 
-	// if(is_testing_search || is_testing_refinedSearch){
-	// 	log << "<DESEJADO>";
-	// 	log << DELIMITER << v;
-	// 	log << DELIMITER << w;
-	// 	log << DELIMITER << left_rotation;
-	// 	log << DELIMITER << right_rotation;
-	// }
+	// log << DELIMITER << gap.getX() << DELIMITER << gap.getY() << DELIMITER << gap.getTheta() << log_endl;
 
-	float r_qpps = r_limited*GEAR_RATE*PULSES_PER_ROTATION;
-	float l_qpps = l_limited*GEAR_RATE*PULSES_PER_ROTATION;
+	float sin_theta = sin(current_position.getTheta());
+	float cos_theta = cos(current_position.getTheta());
 
-	driver->setRightPPS(r_qpps);
-	driver->setLeftPPS(l_qpps);
+	float e1 =  cos_theta*gap.getX() + sin_theta*gap.getY();
+	float e2 = -sin_theta*gap.getX() + cos_theta*gap.getY();
+	float e3 = gap.getTheta();
+
+	//Calculating linear velocity and angular velocity
+	float v = desired_linear_velocity*cos(e3) + k1*e1;
+	float w = desired_angular_velocity + k2*e2 + k3*e3;
+
+	controlMotors2(v, -w, false, 0); // motores trocados
+	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
+
 }
-
-// void Trekking::trackTrajectory() {
-// 	bool linear = true;
-// 	if(linear){
-// 		desired_linear_velocity = MAX_LINEAR_VELOCITY;
-// 		desired_angular_velocity = 0;
-// 	}else{
-// 		desired_linear_velocity = 0;
-// 		desired_angular_velocity = MAX_ANGULAR_VELOCITY;
-// 	}
-//
-// 	//constants to handle errors
-// 	const int k1 = 2;
-// 	const int k2 = 1;
-// 	const int k3 = 2;
-//
-// 	unsigned long t = tracking_regulation_timer.getElapsedTime();
-// 	Position gap = current_position.calculateGap(plannedPosition(linear, t));
-//
-// 	//Angular transformation
-// 	float e1 = gap.getX();
-// 	e1 *= cos(current_position.getTheta());
-// 	e1 += gap.getY()*sin(current_position.getTheta());
-//
-// 	float e2 = -gap.getX();
-// 	e2 *= sin(current_position.getTheta());
-// 	e2 += gap.getY()*cos(current_position.getTheta());
-// 	float e3 = gap.getTheta();
-//
-// 	//Calculating linear velocity and angular velocity
-// 	float v = desired_linear_velocity*cos(e3) + k1*e1;
-// 	float w = desired_angular_velocity + k2*e2 + k3*e3;
-//
-// 	controlMotors(v, w, false, 0);
-// 	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
-//
-// }
 
 float Trekking::regulateControl(Position* q_desired, float dT) {
 	//constants to handle errors
@@ -523,9 +417,9 @@ float Trekking::regulateControl(Position* q_desired, float dT) {
 
 	//Calculating v e w
 	float v = (k1 * rho);
-	float w = -(k2*gamma + k3*delta);
+	float w = k2*gamma + k3*delta;
 
-	controlMotors2(v, w, false, 0);
+	controlMotors2(v, -w, false, 0);//motores trocados
 	distance_to_target = rho;
 	return v;
 }
@@ -540,7 +434,7 @@ void Trekking::cartesianControl(Position* q_desired, float dT) {
 	//Calculating v e w
 	float v = k1*(gap.getX()*cos(current_position.getTheta()) + gap.getY()*sin(current_position.getTheta()));
 	float w = k2*(atan2(gap.getY(), gap.getX()) - current_position.getTheta());
-	controlMotors2(v, w, false, dT);
+	controlMotors2(v, -w, false, dT);
 }
 
 
@@ -551,7 +445,7 @@ void Trekking::updatePosition(float dT){
 	updateSpeeds();
 	// float angular_speed = getAngularSpeed();
 	//float theta = angular_speed*dT;//euler_radians[2] - initial_euler_radians; //in rad
-	float theta = euler_radians[2] - initial_euler_radians; //in rad
+	float theta = euler_radians[2]; //in rad
 	float linear_speed = getLinearSpeed();
 
 	//Calculating new position
@@ -582,62 +476,27 @@ void Trekking::readMPU(){
 		// Wb[0] = MPU.m_rawGyro[1];
 		// Wb[2] = MPU.m_rawGyro[2];
 		//
-		//
 		euler_radians[1] = MPU.m_dmpEulerPose[0];
 		euler_radians[0] = MPU.m_dmpEulerPose[1];
-		euler_radians[2] = MPU.m_dmpEulerPose[2];
+		euler_radians[2] = MPU.m_dmpEulerPose[2] - initial_euler_radians;
 	}
 }
 
 void Trekking::readSonars(){
-	delay(150); // delay to read sonars well
+	delay(500); // delay to read sonars well
 	sonar_list.read();
 
 	float a =left_sonar.getDistance();
 	float b =center_sonar.getDistance();
-	// float c =right_sonar.getDistance();
+	float c =right_sonar.getDistance();// DONT CARE --- It is UNPLUGED
 
-	if (a == 0) {a = MAX_SONAR_DISTANCE + 1;}
-	if (b == 0) {b = MAX_SONAR_DISTANCE + 1;}
+	// if (a == 0) {a = MAX_SONAR_DISTANCE + 1;}
+	// if (b == 0) {b = MAX_SONAR_DISTANCE + 1;}
 	// if (c == 0) {c = MAX_SONAR_DISTANCE + 1;}
 
-	//float sonars[3];
-	//float last_sonars[3];
-
-	if (first_sonars_sample){
-		first_sonars_sample = false;
-
-		sonars[0] = a;
-		sonars[1] = b;
-		// sonars[2] = c;
-	}
-	else {
-		last_sonars[0] = sonars[0];
-		last_sonars[1] = sonars[1];
-
-		sonars[0] = (a - last_sonars[0])/2;
-		sonars[1] = (b - last_sonars[1])/2;
-
-
-		// last_sonars[0] = sonars[0];
-		// last_sonars[1] = sonars[1];
-		// // last_sonars[2] = sonars[2];
-		//
-		// float b_med = (last_sonars[1] + b)/2;
-		// // float c_med = (last_sonars[2] + c)/2;
-		// float a_med = (last_sonars[0] + a)/2;
-		//
-		// float b_std = sqrt(pow(last_sonars[1] - b_med,2) + pow(b - b_med,2));
-		// float a_std = sqrt(pow(last_sonars[0] - a_med,2) + pow(a - a_med,2));
-		// // float c_std = sqrt(pow(last_sonars[2] - c_med,2) + pow(c - c_med,2));
-		//
-		// if (a_std < 10){sonars[0] = a;}
-		// else {sonars[0] = a_med;}
-		// if (b_std < 10){sonars[1] = b;}
-		// else {sonars[1] = b_med;}
-		// // if (c_std < 10){sonars[2] = c;}
-		// // else {sonars[2] = c_med;}
-	}
+	sonars[0] = a; // LEFT
+	sonars[1] = b; // RIGHT
+	sonars[2] = c; // DONT CARE --- It is UNPLUGED
 }
 
 bool Trekking::readColors(){
@@ -682,28 +541,35 @@ float Trekking::getAngularSpeed(){
 /*----|Private: Operations modes|--------------------------------------------*/
 void Trekking::standby(float dT) {
 	if(operation_mode_switch == AUTO_MODE) {
-		log.debug("mode switch", "auto");
+		is_manual_message_sent = false;
+		if(!is_auto_message_sent){
+			log.debug("mode switch", "auto ");
+			is_auto_message_sent = true;
+		}
 		if(init_button) {
 			log.debug("init button", init_button);
-			emergency();
 			reset();
 			if(checkSensors()) {
-				calibrateAngle();
 				operation_mode = &Trekking::search;
 				startTimers();
-				log.assert("operation mode", "search stage");
 			} else {
 				log.error("sensors", "sensors not working as expected");
 			}
 		}
-	} else if(current_command != ' ') {
-		Robot::useCommand(current_command);
-		log.debug("using command", current_command);
-	}
+	}	else{
+		is_auto_message_sent = false;
+		if(!is_manual_message_sent){
+			log.debug("mode switch", "manual ");
+			is_manual_message_sent = true;
+		}
+		if(current_command != ' ') {
+			Robot::useCommand(current_command);
+			log.debug("using command", current_command);
+		}
+		}
 }
 
 void Trekking::search(float dT) {
-	Position *last_reset_position;
 	if(!is_tracking) {
 		log.assert("operation mode", "SEARCH");
 		// tracking_regulation_timer.start();
@@ -711,30 +577,28 @@ void Trekking::search(float dT) {
 		q_desired = targets.get(current_target_index);
 		current_partial_index = 1;
 		correcao = false;
-		last_desired_v = 0;
+		last_desired_v = 1;
+		tracking_time = 0;
 	}
 
-	if(current_target_index > 0){
-    last_reset_position = targets.get(current_target_index-1);
-  }
-  else{
-    last_reset_position = &init_position;
-  }
+	tracking_time += dT;
 
 	distance_to_target = current_position.distanceFrom(q_desired);
 
 	//Colocar a condicao de proximidade
-	if(abs(last_desired_v) < 4 && distance_to_target <= 0.5){
-	// if(distance_to_target <= MAX_SONAR_DISTANCE/100) { //sonar distance is given in cm
-	// if(distance_to_target < PROXIMITY_RADIUS) {
-		// 	tracking_regulation_timer.stop();
-		// 	tracking_regulation_timer.reset();
+	if(distance_to_target <= 1.0){
+  // if(abs(last_desired_v) < 4 && distance_to_target <= 0.5){
+	// if(distance_to_target < 0.0){
 	 	is_tracking = false;
-	 	log.assert("operation mode", "REFINED SEARCH");
-	 	operation_mode = &Trekking::refinedSearch;
+		tracking_time = 0;
+			log.assert("operation mode", "REFINED SEARCH");
+			operation_mode = &Trekking::refinedSearch;
+		// controlMotors(0, 0, false, dT);
+		// operation_mode = &Trekking::lighting;
 	}
 	else{
-		// cartesianControl(q_desired, dT);
+		// BLOCO PARA DESVIAR DE OBSTÁCULOS (não testado!!)
+		/************************************************************************
 		if(current_target_index == 2){
 			if(!correcao){
 				Position *qi = new Position(30, 18, PI/2);
@@ -749,29 +613,17 @@ void Trekking::search(float dT) {
 					// cartesianControl(q_desired, dT);
 				}
 		}
-
+		************************************************************************/
+		if(is_testing_cartesian){ // para testar, digite 1
+			cartesianControl(q_desired, dT);
+		}
+		else if (is_testing_trackTrajectory){ // para testar, digite 3
+			trackTrajectory(q_desired, tracking_time);
+		}
 		else{
 			last_desired_v = regulateControl(q_desired, dT);
 		}
 
-
-
-		// refined search---> "P" = 95%; I=10%
-
-
-
-
-
-
-		// float distance_to_partial_target = current_position.distanceFrom(qi);
-    // if(distance_to_partial_target <= 1.5){
-    //   finishLogLine();
-		//
-    //   log << "Ponto Parcial " << current_partial_index << " atingido!!";
-    //   finishLogLine();
-    //   current_partial_index++;
-    // }
-		// delay(200);
 	}
 	// Log for debug
 	if(is_testing_search){
@@ -791,30 +643,75 @@ void Trekking::search(float dT) {
 void Trekking::refinedSearch(float dT) {
 	// data
 	readSonars();
+	float kw = 0.1;
+	float kv = 0.7;
 
-	float refLinear = 1*MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
-	float minFactor = 0.5*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
+	// float refLinear = 1*MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
+	// float minFactor = 0.5*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
 	float refAngular = 0.7*MAX_ANGULAR_VELOCITY; // it's the fastest it can go and still read the sonars well
-	float sqrSonarDistance = 42.25;	// square of the distance between the two ultrassound sensors
-	// float matrixW[] = {-1, 0, 1};
 
-	float sinTheta = sqrt( 1 - pow((pow(sonars[1],2)-pow(sonars[0],2)+sqrSonarDistance)/(sonars[0]*sonars[1]),2));
-	float h = sonars[0]*sinTheta;
+	float sonarDistance = 6.5/100; // distance between the two ultrassound sensors
+
+	float l_sonar = sonars[0]/100;
+	float r_sonar = sonars[1]/100;
+
+	float cos0 = (pow(sonarDistance,2) + pow(r_sonar,2) - pow(l_sonar,2))/(2*sonarDistance*r_sonar);
+	float sin20 = 1 - pow(cos0,2);
+	float h = 0;
+
+	if(sin20 < 0){
+		h = (l_sonar + r_sonar)/2;
+	}
+	else{
+		float sin0 = sqrt(sin20);
+		h = r_sonar*sin0;
+	}
 
 	// processing
 	if (sonars[0]<=MIN_SONAR_DISTANCE || sonars[1]<=MIN_SONAR_DISTANCE){
-		if ((last_sonars[0]<=MIN_SONAR_DISTANCE || last_sonars[1]<=MIN_SONAR_DISTANCE) && (left_color.isWhite() || center_color.isWhite() )){
+		if ((last_sonars[0]<=MIN_SONAR_DISTANCE || last_sonars[1]<=MIN_SONAR_DISTANCE)){
+		// if ((last_sonars[0]<=MIN_SONAR_DISTANCE || last_sonars[1]<=MIN_SONAR_DISTANCE) && (left_color.isWhite() || center_color.isWhite() )){
 			operation_mode = &Trekking::lighting;
 			controlMotors(0,0,false,dT);
-			// regulateControl(q_desired, 0);
+
+			current_position.setX(targets.get(current_target_index)->getX());
+			current_position.setY(targets.get(current_target_index)->getY());
+			// current_position.set()
+			last_desired_refined_v = 0;
+			integral_error_v = 0;
+			integral_error_w = 0;
 		}
 		is_turning = 0;
 	}
 	else if (sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE){
+		is_turning = true;
+		integral_error_v = 0;
+
+		if(is_turning_right || is_turning_left){
+			is_turning_right = false;
+			is_turning_left = false;
+			integral_error_w = 0;
+		}
+
+		float w = kw*MAX_ANGULAR_VELOCITY;
+
+		// PID BLOCK
+		float kp = 1;
+		float ki = 1;
+
+		last_desired_refined_w = getAngularSpeed();
+		float error = w - last_desired_refined_w;
+		float proportional_error = kp*(error);
+		integral_error_w += ki * error * dT;
+
+		w = proportional_error + integral_error_w;
+
+
+
 		// WE COULD TRY TO USE THE MPU THETA DATUM TO DETERMINE TO WHICH SIDE WE SHOULD TURN!!
-		is_turning += 0.001;
-		float turning_vel = max((0.7-is_turning)*refAngular,0.5*refAngular);
-		controlMotors(0,turning_vel,0,dT);
+		// is_turning += 0.001;
+		// float turning_vel = max((0.7-is_turning)*refAngular,0.5*refAngular);
+		controlMotors(0,-w,0,dT);
 		// delay(500);
 		// controlMotors(0,0,0,0);
 		// // is_turning = true;
@@ -822,32 +719,95 @@ void Trekking::refinedSearch(float dT) {
 	}
 	else{
 		float w,v = 0;
-		if (sonars[0]>MAX_SONAR_DISTANCE) w=-refAngular;
-		else if (sonars[1]>MAX_SONAR_DISTANCE) w=refAngular;
-		else w = ((sonars[1]-sonars[0])*refAngular)/MAX_SONAR_DISTANCE;
+		if (sonars[0]>MAX_SONAR_DISTANCE){
+			is_turning_right = true;
+			integral_error_v = 0;
 
-		v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*h,minFactor);
-		// float ajuste_L = refLinear*(exp(/*k*/-1.5*MAX_SONAR_DISTANCE/sonars[0])+minFactor); // we could add a small factor k to make it faster
-		// float ajuste_R = refLinear*(exp(/*k*/-1.5*MAX_SONAR_DISTANCE/sonars[1])+minFactor); // we could add a small factor k to make it faster
-			// sonars[0]*(pow(sonars[1],2)-pow(sonars[0],2)+144)/(sonars[0]*sonars[1]) is the distance between the sonsors' line and the object being seen
-		// simpleControlMotors(v + ajuste_L, v + ajuste_R);
-		controlMotors(v,w,false,dT);
-		is_turning=0;
-		if (getLinearSpeed()==0 && getAngularSpeed()==0) {
-			if (center_color.isWhite() || left_color.isWhite()){
-				// operation_mode = &Trekking::lighting;
-				// controlMotors(0,0,false,dT);
+			if(is_turning || is_turning_left){
+				is_turning = false;
+				is_turning_left = false;
+				integral_error_w = 0;
 			}
+
+			w=kw*refAngular;
+
+			// PID BLOCK
+			// float kp = 1;
+			// float ki = 1;
+			//
+			// last_desired_refined_w = getAngularSpeed();
+			// float error = w - last_desired_refined_w;
+			// float proportional_error = kp*(error);
+			// integral_error_w += ki * error * dT;
+			//
+		  // w = proportional_error + integral_error_w;
 		}
+		else if (sonars[1]>MAX_SONAR_DISTANCE){
+			is_turning_left = true;
+			integral_error_v = 0;
+
+			if(is_turning || is_turning_right){
+				is_turning = false;
+				is_turning_right = false;
+				integral_error_w = 0;
+			}
+
+			w=-kw*refAngular;
+
+			// PID BLOCK
+			// float kp = 1;
+			// float ki = 1;
+			//
+			// last_desired_refined_w = -getAngularSpeed();
+			// float error = w - last_desired_refined_w;
+			// float proportional_error = kp*(error);
+			// integral_error_w += ki * error * dT;
+			//
+			// w = proportional_error + integral_error_w;
+
+		}
+		// else w = ((sonars[2]-sonars[0])*refAngular)/MAX_SONAR_DISTANCE;
+		else{
+			integral_error_w = 0;
+			v = kv*1.1*(h);//max(refLinear*h,minFactor);
+			w = kw*(r_sonar-l_sonar)/sonarDistance;
+
+			float kp = 1;
+			float ki = 1;
+
+			last_desired_refined_v = getLinearSpeed();
+			float error = v - last_desired_refined_v;
+			integral_error_v += ki * error * dT;
+		  float proportional_error = kp*(error);
+
+			// v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*h,minFactor);
+		  v = proportional_error + integral_error_v;
+		}
+
+		controlMotors2(v,-w,false,0);
+		is_turning=0;
 	}
 	if(is_testing_refinedSearch){
 		log << DELIMITER << "<REAL>";
-		//printTime();
+		// printTime();
+		log << DELIMITER << dT;
 		printVelocities();// [V e W]
 		printRotations(); // [L_RPS e R_RPS]
-		printSonarInfo();  // [L C R]
+		printSonarInfo();  // [L R DontCare]
+		printPosition();
 		finishLogLine();
 	}
+
+	if(is_testing_search){
+		log << DELIMITER << "<REAL>";
+		// printTime();
+		log << DELIMITER << dT;
+		printVelocities();// [V e W]
+		printRotations(); // [L_RPS e R_RPS]
+		printPosition();
+		finishLogLine();
+	}
+
 }
 
 void Trekking::lighting(float dT) {
@@ -877,17 +837,17 @@ void Trekking::goToNextTarget() {
 void Trekking::reset() {
 	log.assert("reset", "resetting...");
 
-	Robot::stop();
+	// Robot::stop();
 	resetPosition(init_position);
 	calibrateAngle();
 	right_pid.reset();
 	left_pid.reset();
-	stopTimers();
-	resetTimers();
+	// stopTimers();
+	// resetTimers();
 	turnOffSirene();
 
 	//Trekking variables
-	desired_linear_velocity = 0;
+	desired_linear_velocity = TWO_PI_R*SAFE_RPS;
 	desired_angular_velocity = 0;
 	min_distance_to_enable_lights = 0;
 	min_distance_to_refine_search = 0;
@@ -904,12 +864,11 @@ void Trekking::reset() {
 	left_vel_ref = 0;
 	right_vel_ref = 0;
 
+	integral_error_v = 0;
+	integral_error_w = 0;
+
 	elapsed_time = 0;
 	last_update_time = millis();
-
-	//Go to the standby state
-	operation_mode = &Trekking::standby;
-	log.assert("operation mode", "standby");
 
 	log.assert("reset", "done.");
 }
@@ -939,7 +898,7 @@ void Trekking::turnOffSirene() {
 
 /*----|Private: Timer functions|---------------------------------------------*/
 void Trekking::startTimers() {
-	sirene_timer.start();
+	// sirene_timer.start();
 }
 
 void Trekking::stopTimers() {
@@ -985,7 +944,7 @@ void Trekking::loopCheck(){
 bool Trekking::checkSensors() {return true;}
 
 void Trekking::calibrateAngle() {
-	initial_euler_radians = euler_radians[2];
+	initial_euler_radians = MPU.m_dmpEulerPose[2];
 	current_position.setTheta(0);
 	digitalWrite(ALERT_LED, LOW);
 	log.info("mpu","Angle calibrated!");
@@ -1019,6 +978,7 @@ void Trekking::debug() {
 	}
 	else if(current_command == 'r') {
 		log.debug("debug command", "reset");
+		emergency();
 		reset();
 	}
 	else if(current_command == 'W') {
@@ -1029,12 +989,14 @@ void Trekking::debug() {
 		log.debug("debug command", "turn off sirene");
 		turnOffSirene();
 	}
+
 	else if(current_command == 'n') {
 		log.debug("debug command", "print encoders");
 		log <<	DELIMITER << driver->getLeftEncoder();
 		log <<	DELIMITER << driver->getRightEncoder();
 		log << log_endl;
 	}
+
 	else if(current_command == 'p') {
 		log.debug("debug command", "print position");
 		log << DEBUG;
@@ -1048,26 +1010,79 @@ void Trekking::debug() {
 		finishLogLine();
 	}
 	else if(current_command == 'm') {
-		log.debug("debug command", "print mpu");
+		current_command = ' ';
+		log.debug("debug command", "testing mpu");
 		log << DEBUG;
 		log << DELIMITER << "alpha";
 		log << DELIMITER << "beta";
 		log << DELIMITER << "theta" << log_endl;
-		printMPUInfo();
-		finishLogLine();
+		while (current_command != 'm'){
+			if(command_stream->available()) {
+				current_command = command_stream->read();
+			}
+			delay(20);
+			if(MPU.read()) {
+				euler_radians[1] = MPU.m_dmpEulerPose[0];
+				euler_radians[0] = MPU.m_dmpEulerPose[1];
+				euler_radians[2] = MPU.m_dmpEulerPose[2] - initial_euler_radians;
+				printMPUInfo();
+				finishLogLine();
+			}
+		}
 	}
 	else if(current_command == 'o') {
 		current_command = ' ';
 		log.debug("debug command", "testing sonars");
 		log << DEBUG;
 		log << DELIMITER << "left";
-		log << DELIMITER << "center";
-		log << DELIMITER << "right" << log_endl;
+		log << DELIMITER << "right";
+		log << DELIMITER << "h" << log_endl;
 		while (current_command != 'o'){
 			if(command_stream->available()) {
 				current_command = command_stream->read();
 			}
+				readSonars();
 				printSonarInfo();
+				float sonarDistance = 6.5/100; // distance between the two ultrassound sensors
+
+				float l_sonar = sonars[0]/100;
+				float r_sonar = sonars[1]/100;
+
+				float cos0 = (pow(sonarDistance,2) + pow(r_sonar,2) - pow(l_sonar,2))/(2*sonarDistance*r_sonar);
+				float sin20 = 1 - pow(cos0,2);
+				float h = 0;
+
+				if(sin20 < 0){
+					h = (l_sonar + r_sonar)/2;
+				}
+				else{
+					float sin0 = sqrt(sin20);
+					h = r_sonar*sin0;
+				}
+
+
+				log << DELIMITER << h;
+				log << DELIMITER << DELIMITER << cos0;
+				finishLogLine();
+		}
+	}
+	else if(current_command == 'x') {
+		current_command = ' ';
+		log.debug("debug command", "testing encoders");
+		log << DEBUG;
+		log << DELIMITER << "l_pps";
+		log << DELIMITER << "r_pps";
+		log << DELIMITER << "l_rps";
+		log << DELIMITER << "r_rps";
+		while (current_command != 'x'){
+			if(command_stream->available()) {
+				current_command = command_stream->read();
+			}
+				log << DELIMITER << driver->getLeftPPS();
+				log << DELIMITER << driver->getRightPPS();
+				log << DELIMITER;
+				log << DELIMITER << ppsToRps(driver->getLeftPPS());
+				log << DELIMITER << ppsToRps(driver->getRightPPS());
 				finishLogLine();
 		}
 	}
@@ -1116,19 +1131,6 @@ void Trekking::debug() {
 		}
 	}
 
-
-	else if(current_command == 'x') {
-		if(!is_testing_openloop){
-			reset();
-			log.debug("debug command", "testing open motors in open loop: linear vel");
-		}
-		is_testing_openloop = !is_testing_openloop;
-
-		driver->setLeftPPS(is_testing_openloop*tested_pps);
-		driver->setRightPPS(is_testing_openloop*tested_pps);
-		elapsed_time = 0;
-		log << '\\' <<  log_endl;
-	}
 	else if(current_command == 'y') {
 		if(!is_testing_openloop){
 			reset();
@@ -1142,7 +1144,23 @@ void Trekking::debug() {
 		elapsed_time = 0;
 		log << '\\' <<  log_endl;
 	}
-	else if(current_command == 'E') {
+
+	else if(current_command == '1') {// TESTANDO CARTESIANO
+		if(!is_testing_search){
+			reset();
+			log.debug("debug command", "testing search [CARTESIAN]");
+			is_testing_search = true;
+			is_testing_cartesian = true;
+			operation_mode = &Trekking::search;
+			log << '\\' << log_endl;
+		} else{
+			is_testing_cartesian = false;
+			reset();
+		}
+		elapsed_time = 0;
+	}
+
+	else if(current_command == '2') {// TESTANDO POLAR
 		if(!is_testing_search){
 			reset();
 			log.debug("debug command", "testing search");
@@ -1150,6 +1168,21 @@ void Trekking::debug() {
 			operation_mode = &Trekking::search;
 			log << '\\' << log_endl;
 		} else{
+			reset();
+		}
+		elapsed_time = 0;
+	}
+
+	else if(current_command == '3') { // TESTANDO TRAJECTORY
+		if(!is_testing_search){
+			reset();
+			log.debug("debug command", "testing search [TRACK TRAJECTORY]");
+			is_testing_search = true;
+			is_testing_trackTrajectory = true;
+			operation_mode = &Trekking::search;
+			log << '\\' << log_endl;
+		} else{
+			is_testing_trackTrajectory = false;
 			reset();
 		}
 		elapsed_time = 0;
@@ -1170,11 +1203,10 @@ void Trekking::debug() {
 
 void Trekking::printSonarInfo()
 {
-	readSonars();
 	// sonar_list.read();
 	log << DELIMITER << left_sonar.getDistance();
-	log << DELIMITER << center_sonar.getDistance();
-	// log << DELIMITER << right_sonar.getDistance();
+	log << DELIMITER << center_sonar.getDistance(); // is the right now
+	// log << DELIMITER << right_sonar.getDistance(); // is unpluged
 	log << DELIMITER;
 
 }
@@ -1256,36 +1288,3 @@ void Trekking::printColorsInfo(){
 	// log << DELIMITER << right_color.getWhite();
 	log << DELIMITER;
 }
-
-/*----|Public: Test related functions
-void Trekking::goStraight(bool enable_pid){
-	loopCheck();
-	controlMotors(1, 0, enable_pid);
-}
-
-void Trekking::doCircle(bool enable_pid){
-	loopCheck();
-	controlMotors(1, 1, enable_pid);
-}
-
-void Trekking::goStraightWithControl(float meters){
-	loopCheck();
-
-	unsigned long t = tracking_regulation_timer.getElapsedTime();
-	log << DEBUG << "" << log_endl;
-	log << "\t" << t;
-
-	Position* destination = targets.get(current_target_index);
-	destination->set(meters, 0.0, 0.0);
-
-	Position planned_position = plannedPosition(true, t);
-	Position gap = current_position.calculateGap(planned_position);
-
-	if(!is_tracking) {
-		log.debug("Search", "starting tracking timer");
-		tracking_regulation_timer.start();
-		is_tracking = true;
-	}
-
-}
-|---------------------------------------*/

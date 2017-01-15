@@ -104,7 +104,7 @@ private:
 	const float G_FACTOR;
 
 	//Sonars
-	// XLMaxSonarEZ right_sonar;
+	XLMaxSonarEZ right_sonar;
 	XLMaxSonarEZ left_sonar;
 	XLMaxSonarEZ center_sonar;
 	SonarList sonar_list;
@@ -139,7 +139,7 @@ private:
 
 	bool sirene_is_on;
 	bool is_tracking;
-	int is_turning;
+
 
 	float distance_to_target;
 
@@ -178,6 +178,8 @@ private:
 	float initial_euler_radians;
 	MPU9150Lib MPU;
 	bool mpu_first_time;
+	bool is_auto_message_sent =false;
+	bool is_manual_message_sent =false;
 
 	float l_rotations_per_sec, r_rotations_per_sec;
 	Position current_position;
@@ -192,6 +194,8 @@ private:
 	bool is_testing_refinedSearch = false;
 	bool is_testing_openloop = false;
 	bool is_testing_search = false;
+	bool is_testing_cartesian = false;
+	bool is_testing_trackTrajectory = false;
 
 	float tested_pps;
 
@@ -200,8 +204,19 @@ private:
 	float accel_offset[3];
 	float last_accel[3];
 
+	float tracking_time;
+
 	bool correcao;
 	float last_desired_v;
+
+	float last_desired_refined_v;
+	float last_desired_refined_w;
+	float integral_error_v;
+	float integral_error_w;
+
+	bool is_turning_right = false;
+	bool is_turning_left = false;
+	bool is_turning = false;
 
 
 	/*----|Matlab related functions|-----------------------------------------*/
@@ -209,7 +224,7 @@ private:
 	void controlMotors(float v, float w, bool enable_pid, float dT);
 	void simpleControlMotors(float v, float w);
 	void controlMotors2(float v, float w, bool enable_pid, float dT);
-	void trackTrajectory();
+	void trackTrajectory(Position* q_desired, float tracking_time);
 	float regulateControl(Position* q_desired, float dT);
 	void cartesianControl(Position* q_desired, float dT);
 
