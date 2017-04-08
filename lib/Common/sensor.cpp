@@ -3,22 +3,22 @@
 Sensor::Sensor(int samples)
 {
 	this->samples = samples;
-    setRange(0,1023);
+  setRange(0,1023);
 }
 
-data_t Sensor::getMeanValue()
+double Sensor::getMeanValue()
 {
 	return getMeanValue(this->samples);
 }
 
-data_t Sensor::getMeanValue(int samples)
+double Sensor::getMeanValue(int samples)
 {
-	data_t mean = 0;
+	double mean = 0;
 	int used_samples = 0;
 
 	for(int i = 0; i < samples; i++)
 	{
-		data_t current_value = getRawValue();
+		double current_value = getRawValue();
 		if(current_value != SENSOR_OUT_OF_RANGE)
 		{
 			mean += current_value;
@@ -37,7 +37,7 @@ data_t Sensor::getMeanValue(int samples)
 	return SENSOR_OUT_OF_RANGE;
 }
 
-void Sensor::setRange(data_t minimum, data_t maximum)
+void Sensor::setRange(double minimum, double maximum)
 {
 	minimum_range = minimum;
 	maximum_range = maximum;

@@ -1,7 +1,7 @@
 /*
  *HC-SR04 Ultrasonic sensor
  */
- 
+
 #ifndef ULTRASONIC_H
 #define ULTRASONIC_H
 
@@ -25,16 +25,16 @@ public:
 
 	long getTimming();
 	long getRawDistance();
-	data_t getDistance();
+	double getDistance();
 
 	void setSystem(DistanceSystem system);
 	void setTimeout(unsigned long timeout=DEFAULT_TIMEOUT);
-	data_t getRawValue();
+	double getRawValue();
 
 private:
 
 	int trigger_pin, echo_pin;
-	data_t system_conv;		//System convertion
+	double system_conv;		//System convertion
 	unsigned long timeout;
 };
 

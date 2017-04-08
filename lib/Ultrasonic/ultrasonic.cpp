@@ -15,11 +15,11 @@ Ultrasonic::Ultrasonic(int trigger_pin, int echo_pin)
 
 long Ultrasonic::getTimming()
 {
-	digitalWrite(trigger_pin, LOW); 
-	delayMicroseconds(2); 
+	digitalWrite(trigger_pin, LOW);
+	delayMicroseconds(2);
 
 	digitalWrite(trigger_pin, HIGH);
-	delayMicroseconds(10); 
+	delayMicroseconds(10);
 
 	digitalWrite(trigger_pin, LOW);
 
@@ -43,7 +43,7 @@ long Ultrasonic::getRawDistance()
 	return distance;
 }
 
-data_t Ultrasonic::getDistance()
+double Ultrasonic::getDistance()
 {
 	return getMeanValue();
 }
@@ -65,7 +65,7 @@ void Ultrasonic::setTimeout(unsigned long timeout)
 	this->timeout = timeout;
 }
 
-data_t Ultrasonic::getRawValue()
+double Ultrasonic::getRawValue()
 {
-	return (data_t) getRawDistance();
+	return getRawDistance();
 }

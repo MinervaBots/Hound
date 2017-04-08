@@ -64,6 +64,11 @@ void TCS230::setWhiteValue(int value){
     white_value = value;
 }
 
+double TCS230::getRawValue()
+{
+  return (getRed() + getGreen() + getBlue()) / 3;
+}
+
 //This method returns if an object is white or not;
 bool TCS230::isWhite(){
     int color = getWhite();

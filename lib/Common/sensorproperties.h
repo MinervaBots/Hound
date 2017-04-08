@@ -27,4 +27,4 @@ enum SensorType
 #define INVALID_POSITION		-2
 #define INVALID_SENSOR			-3
 
-typedef double data_t;			//Data type
+//typedef double data_t;			//Data type
