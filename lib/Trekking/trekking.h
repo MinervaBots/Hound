@@ -2,7 +2,9 @@
 #define TREKKING_H
 
 #include "../Log/log.h"
-#include "../XLMaxSonarEZ/sonarlist.h"
+#include "LinkedList.h"
+//#include "../XLMaxSonarEZ/sonarlist.h"
+#include "../Ultrasonic/ultrasonic.h"
 #include "../Robot/Robot.h"
 #include "../Timer/timer.h"
 #include "trekkingpins.h"
@@ -104,10 +106,10 @@ private:
 	const float G_FACTOR;
 
 	//Sonars
-	XLMaxSonarEZ right_sonar;
-	XLMaxSonarEZ left_sonar;
-	XLMaxSonarEZ center_sonar;
-	SonarList sonar_list;
+	Ultrasonic right_sonar;
+	Ultrasonic left_sonar;
+	Ultrasonic center_sonar;
+	//SonarList sonar_list;
 
 	//Color Sensors
 	TCS230 right_color;
@@ -170,8 +172,8 @@ private:
 	float euler_radians[3];
 	float last_euler_radians[3];
 
-	float sonars[3];// esquerda,direita,centro
-	float last_sonars[3];
+	double sonars[3];// esquerda,direita,centro
+	double last_sonars[3];
 	bool first_sonars_sample;
 
 	bool first_mpu_sample;
