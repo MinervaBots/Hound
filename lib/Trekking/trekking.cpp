@@ -635,6 +635,7 @@ void Trekking::refinedSearch(float deltaTime)
 		last_desired_refined_v = 0;
 		integral_error_v = 0;
 		integral_error_w = 0;
+		m_PidController.Reset();
 	}
 	//*/
 

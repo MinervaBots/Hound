@@ -1,35 +1,26 @@
 #ifndef TREKKING_H
 #define TREKKING_H
 
+
+#include "Trekkingpins.h"
+#include "Trekkingmath.h"
+#include "Position.h"
+#include "DuoDriver.h"
+
 #include "../PID/PID.h"
 #include "../SensorArray/SensorArray.h"
 
-#include "../Log/log.h"
-#include "LinkedList.h"
-#include "../Ultrasonic/ultrasonic.h"
+#include "../Log/Log.h"
+#include "../LinkedList/LinkedList.h"
 #include "../Robot/Robot.h"
-#include "../Timer/timer.h"
-#include "trekkingpins.h"
-#include "trekkingmath.h"
-#include "position.h"
-#include "../Robot/DualDriver.h"
-#include "DuoDriver.h"
+#include "../Timer/Timer.h"
 #include "../TCS230/TCS230.h"
-
-#include "../I2CDev/I2Cdev.h"
 #include "../MPU9150Lib/MPU9150Lib.h"
-#include "../CalLib/CalLib.h"
+
 /*
-#include <dmpKey.h>
-#include <dmpmap.h>
+//Deixa isso aqui porque aparentemente sem esse #include (mesmo que comentado), ele falha ao compilar
 #include <inv_mpu.h>
-#include <inv_mpu_dmp_motion_driver.h>
 //*/
-
-
-#ifndef PI
-#define PI 3.141592653589793238;
-#endif
 
 class Trekking : public Robot{
 public:

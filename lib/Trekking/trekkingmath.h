@@ -8,6 +8,11 @@
 #ifndef TREKKINGMATH_H
 #define TREKKINGMATH_H
 
+#ifndef PI
+#define PI 3.141592653589793238;
+#endif
+
+
 /*
 	Absolute value of a number
 */
