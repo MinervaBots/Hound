@@ -1,5 +1,6 @@
 #include "trekking.h"
 
+#define SONAR_TIMEOUT 58 * 150
 
 /*----|Public|---------------------------------------------------------------*/
 Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
@@ -60,7 +61,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	left_sonar(LEFT_SONAR_TX_PIN, LEFT_SONAR_RX_PIN),
 	center_sonar(CENTER_SONAR_TX_PIN, CENTER_SONAR_RX_PIN),
 
-	sonar_list(Sonar::CHAIN),
+	//sonar_list(Sonar::CHAIN),
 
 	//Color Sensors
 	right_color(RIGHT_COLOR_S0,RIGHT_COLOR_S1,RIGHT_COLOR_S2,RIGHT_COLOR_S3,RIGHT_COLOR_OUTPUT,WHITE_VALUE),
@@ -90,9 +91,12 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	Robot::setMinPWM(80, 80);
 
 	//MUST CHECK THE RIGHT ORDER ON THE BOARD
-	sonar_list.addSonar(&left_sonar);
-	sonar_list.addSonar(&center_sonar);
-	sonar_list.addSonar(&right_sonar);
+	//sonar_list.addSonar(&left_sonar);
+	//sonar_list.addSonar(&center_sonar);
+	//sonar_list.addSonar(&right_sonar);
+	left_sonar.setTimeout(SONAR_TIMEOUT);
+	center_sonar.setTimeout(SONAR_TIMEOUT);
+	right_sonar.setTimeout(SONAR_TIMEOUT);
 
 	//Timers
 	mpu_timer.setInterval(READ_MPU_TIME);
@@ -484,11 +488,11 @@ void Trekking::readMPU(){
 
 void Trekking::readSonars(){
 	delay(500); // delay to read sonars well
-	sonar_list.read();
+	//sonar_list.read();
 
-	float a =left_sonar.getDistance();
-	float b =center_sonar.getDistance();
-	float c =right_sonar.getDistance();// DONT CARE --- It is UNPLUGED
+	double a = left_sonar.getDistance();
+	double b = center_sonar.getDistance();
+	double c = right_sonar.getDistance();// DONT CARE --- It is UNPLUGED
 
 	// if (a == 0) {a = MAX_SONAR_DISTANCE + 1;}
 	// if (b == 0) {b = MAX_SONAR_DISTANCE + 1;}

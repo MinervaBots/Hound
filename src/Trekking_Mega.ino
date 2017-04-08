@@ -5,12 +5,11 @@
 
 #include "trekking.h"
 #include "trekkingmath.h"
-#include "sonarlist.h"
 #include "timer.h"
 #include "position.h"
 #include "trekkingpins.h"
 #include "PIDControler.h"
-#include "XLMaxSonarEZ.h"
+#include "LinkedList.h"
 #include "log.h"
 #include "robot.h"
 
