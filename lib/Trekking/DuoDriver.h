@@ -1,12 +1,11 @@
 #ifndef DUODRIVER_H
-#define DUORDRIVER_H
+#define DUODRIVER_H
 
-// #include <Arduino.h>
+
 #include "../Robot/DualDriver.h"
 #include "../RoboClaw/RoboClaw.h"
 #include "../BMSerial/BMSerial.h"
-
-#include "PIDControler.h"
+#include "../PID/PID.h"
 
 
 class DuoDriver: public DualDriver
@@ -79,8 +78,8 @@ protected:
     uint32_t MAX_PPS;
     int last_l_pps, last_r_pps;
 
-    PIDControler r_pid;
-  	PIDControler l_pid;
+    PID r_pid;
+  	PID l_pid;
 };
 
 #endif

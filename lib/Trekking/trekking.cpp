@@ -1,9 +1,12 @@
 #include "trekking.h"
 
+#define SONAR_TIMEOUT 58 * 150
 
 /*----|Public|---------------------------------------------------------------*/
-Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
+Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidController, SensorArray *pSensorArray):
 	Robot(driver_pointer),
+	m_PidController(pidController),
+	m_pSensorArray(pSensorArray),
 
 	DELIMITER(';'),
 	// DELIMITER('\t'),
@@ -55,12 +58,7 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	READ_MPU_TIME(30),
 	G_FACTOR(160*9.8),
 
-	//Sonars
-	right_sonar(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN),
-	left_sonar(LEFT_SONAR_TX_PIN, LEFT_SONAR_RX_PIN),
-	center_sonar(CENTER_SONAR_TX_PIN, CENTER_SONAR_RX_PIN),
-
-	sonar_list(Sonar::CHAIN),
+	//sonar_list(Sonar::CHAIN),
 
 	//Color Sensors
 	right_color(RIGHT_COLOR_S0,RIGHT_COLOR_S1,RIGHT_COLOR_S2,RIGHT_COLOR_S3,RIGHT_COLOR_OUTPUT,WHITE_VALUE),
@@ -90,9 +88,9 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	Robot::setMinPWM(80, 80);
 
 	//MUST CHECK THE RIGHT ORDER ON THE BOARD
-	sonar_list.addSonar(&left_sonar);
-	sonar_list.addSonar(&center_sonar);
-	sonar_list.addSonar(&right_sonar);
+	//sonar_list.addSonar(&left_sonar);
+	//sonar_list.addSonar(&center_sonar);
+	//sonar_list.addSonar(&right_sonar);
 
 	//Timers
 	mpu_timer.setInterval(READ_MPU_TIME);
@@ -107,12 +105,12 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 	// tracking_regulation_timer.setInterval(READ_ENCODERS_TIME);
 	calibrate_angle_timer.setTimeout(20000);
 	calibrate_angle_timer.start();
-
+/*
 	kp_left = 7.2;  kp_right = 7.2;
 	ki_left = 8;    ki_right = 8;
 	kd_left = 0;    kd_right = 0;
 	bsp_left = 0.8; bsp_right = 0.8;
-
+*/
 	last_desired_refined_v = 0;
 
 	kp = 1;
@@ -121,11 +119,12 @@ Trekking::Trekking(float safety_factor,	DuoDriver* driver_pointer):
 
 	first_mpu_sample = true;
 	is_turning = 0;
-
+/*
 	pid_convertion_const = (1000 * 2 * 3.1415) / 1024.0;
 
 	right_pid.Init(kp_right, kd_right, ki_right, bsp_right);
 	left_pid.Init(kp_left, kd_left, ki_left, bsp_left);
+	*/
 	driver->setPID(kp, ki, kd);
 
 	driver->setMaxPPS(MAX_PPS);
@@ -482,23 +481,6 @@ void Trekking::readMPU(){
 	}
 }
 
-void Trekking::readSonars(){
-	delay(500); // delay to read sonars well
-	sonar_list.read();
-
-	float a =left_sonar.getDistance();
-	float b =center_sonar.getDistance();
-	float c =right_sonar.getDistance();// DONT CARE --- It is UNPLUGED
-
-	// if (a == 0) {a = MAX_SONAR_DISTANCE + 1;}
-	// if (b == 0) {b = MAX_SONAR_DISTANCE + 1;}
-	// if (c == 0) {c = MAX_SONAR_DISTANCE + 1;}
-
-	sonars[0] = a; // LEFT
-	sonars[1] = b; // RIGHT
-	sonars[2] = c; // DONT CARE --- It is UNPLUGED
-}
-
 bool Trekking::readColors(){
 	bool white[3];
 	white[0] = left_color.isWhite();
@@ -640,157 +622,42 @@ void Trekking::search(float dT) {
 	}
 }
 
-void Trekking::refinedSearch(float dT) {
-	// data
-	readSonars();
-	float kw = 0.1;
-	float kv = 0.7;
+void Trekking::refinedSearch(float deltaTime)
+{
+	/* Verificar se não está em cima da base branca
+	{
+		controlMotors(0, 0, false, dT);
+		operation_mode = &Trekking::lighting;
 
-	// float refLinear = 1*MAX_LINEAR_VELOCITY; // it's the fastest it can go and still read the sonars well
-	// float minFactor = 0.5*MAX_LINEAR_VELOCITY; // it's minimum linear velocity will be the reference multiplied by this factor
-	float refAngular = 0.7*MAX_ANGULAR_VELOCITY; // it's the fastest it can go and still read the sonars well
-
-	float sonarDistance = 6.5/100; // distance between the two ultrassound sensors
-
-	float l_sonar = sonars[0]/100;
-	float r_sonar = sonars[1]/100;
-
-	float cos0 = (pow(sonarDistance,2) + pow(r_sonar,2) - pow(l_sonar,2))/(2*sonarDistance*r_sonar);
-	float sin20 = 1 - pow(cos0,2);
-	float h = 0;
-
-	if(sin20 < 0){
-		h = (l_sonar + r_sonar)/2;
-	}
-	else{
-		float sin0 = sqrt(sin20);
-		h = r_sonar*sin0;
-	}
-
-	// processing
-	if (sonars[0]<=MIN_SONAR_DISTANCE || sonars[1]<=MIN_SONAR_DISTANCE){
-		if ((last_sonars[0]<=MIN_SONAR_DISTANCE || last_sonars[1]<=MIN_SONAR_DISTANCE)){
-		// if ((last_sonars[0]<=MIN_SONAR_DISTANCE || last_sonars[1]<=MIN_SONAR_DISTANCE) && (left_color.isWhite() || center_color.isWhite() )){
-			operation_mode = &Trekking::lighting;
-			controlMotors(0,0,false,dT);
-
-			current_position.setX(targets.get(current_target_index)->getX());
-			current_position.setY(targets.get(current_target_index)->getY());
-			// current_position.set()
-			last_desired_refined_v = 0;
-			integral_error_v = 0;
-			integral_error_w = 0;
-		}
-		is_turning = 0;
-	}
-	else if (sonars[0]>MAX_SONAR_DISTANCE && sonars[1]>MAX_SONAR_DISTANCE){
-		is_turning = true;
+		current_position.setX(targets.get(current_target_index)->getX());
+		current_position.setY(targets.get(current_target_index)->getY());
+		// current_position.set()
+		last_desired_refined_v = 0;
 		integral_error_v = 0;
-
-		if(is_turning_right || is_turning_left){
-			is_turning_right = false;
-			is_turning_left = false;
-			integral_error_w = 0;
-		}
-
-		float w = kw*MAX_ANGULAR_VELOCITY;
-
-		// PID BLOCK
-		float kp = 1;
-		float ki = 1;
-
-		last_desired_refined_w = getAngularSpeed();
-		float error = w - last_desired_refined_w;
-		float proportional_error = kp*(error);
-		integral_error_w += ki * error * dT;
-
-		w = proportional_error + integral_error_w;
-
-
-
-		// WE COULD TRY TO USE THE MPU THETA DATUM TO DETERMINE TO WHICH SIDE WE SHOULD TURN!!
-		// is_turning += 0.001;
-		// float turning_vel = max((0.7-is_turning)*refAngular,0.5*refAngular);
-		controlMotors(0,-w,0,dT);
-		// delay(500);
-		// controlMotors(0,0,0,0);
-		// // is_turning = true;
-		// delay(200);
+		integral_error_w = 0;
 	}
-	else{
-		float w,v = 0;
-		if (sonars[0]>MAX_SONAR_DISTANCE){
-			is_turning_right = true;
-			integral_error_v = 0;
+	//*/
 
-			if(is_turning || is_turning_left){
-				is_turning = false;
-				is_turning_left = false;
-				integral_error_w = 0;
-			}
-
-			w=kw*refAngular;
-
-			// PID BLOCK
-			// float kp = 1;
-			// float ki = 1;
-			//
-			// last_desired_refined_w = getAngularSpeed();
-			// float error = w - last_desired_refined_w;
-			// float proportional_error = kp*(error);
-			// integral_error_w += ki * error * dT;
-			//
-		  // w = proportional_error + integral_error_w;
-		}
-		else if (sonars[1]>MAX_SONAR_DISTANCE){
-			is_turning_left = true;
-			integral_error_v = 0;
-
-			if(is_turning || is_turning_right){
-				is_turning = false;
-				is_turning_right = false;
-				integral_error_w = 0;
-			}
-
-			w=-kw*refAngular;
-
-			// PID BLOCK
-			// float kp = 1;
-			// float ki = 1;
-			//
-			// last_desired_refined_w = -getAngularSpeed();
-			// float error = w - last_desired_refined_w;
-			// float proportional_error = kp*(error);
-			// integral_error_w += ki * error * dT;
-			//
-			// w = proportional_error + integral_error_w;
-
-		}
-		// else w = ((sonars[2]-sonars[0])*refAngular)/MAX_SONAR_DISTANCE;
-		else{
-			integral_error_w = 0;
-			v = kv*1.1*(h);//max(refLinear*h,minFactor);
-			w = kw*(r_sonar-l_sonar)/sonarDistance;
-
-			float kp = 1;
-			float ki = 1;
-
-			last_desired_refined_v = getLinearSpeed();
-			float error = v - last_desired_refined_v;
-			integral_error_v += ki * error * dT;
-		  float proportional_error = kp*(error);
-
-			// v = max((refLinear)/(MAX_SONAR_DISTANCE-MIN_SONAR_DISTANCE)*h,minFactor);
-		  v = proportional_error + integral_error_v;
-		}
-
-		controlMotors2(v,-w,false,0);
-		is_turning=0;
+	float error = m_pSensorArray->Update();
+	if(m_pSensorArray->DetectedCount > 0)
+	{
+		float power = m_PidController.Run(error, deltaTime);
+		controlMotors(0, power, 0, deltaTime);
 	}
+	else
+	{
+		// Nesse caso não temos nenhum cone a vista
+		// E como a detecção da base branca foi feita lá em cima, não é o caso de estar a < 30cm
+		// Dá uma voltinha pra encontrar o cone?
+
+		controlMotors(20, -1, 0, deltaTime);
+	}
+
+
 	if(is_testing_refinedSearch){
 		log << DELIMITER << "<REAL>";
 		// printTime();
-		log << DELIMITER << dT;
+		log << DELIMITER << deltaTime;
 		printVelocities();// [V e W]
 		printRotations(); // [L_RPS e R_RPS]
 		printSonarInfo();  // [L R DontCare]
@@ -801,7 +668,7 @@ void Trekking::refinedSearch(float dT) {
 	if(is_testing_search){
 		log << DELIMITER << "<REAL>";
 		// printTime();
-		log << DELIMITER << dT;
+		log << DELIMITER << deltaTime;
 		printVelocities();// [V e W]
 		printRotations(); // [L_RPS e R_RPS]
 		printPosition();
@@ -840,8 +707,11 @@ void Trekking::reset() {
 	// Robot::stop();
 	resetPosition(init_position);
 	calibrateAngle();
+	m_PidController.Reset();
+	/*
 	right_pid.reset();
 	left_pid.reset();
+	*/
 	// stopTimers();
 	// resetTimers();
 	turnOffSirene();
@@ -861,9 +731,10 @@ void Trekking::reset() {
 	first_sonars_sample = true;
 	current_target_index = 0;
 	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
+	/*
 	left_vel_ref = 0;
 	right_vel_ref = 0;
-
+	*/
 	integral_error_v = 0;
 	integral_error_w = 0;
 
@@ -1041,7 +912,8 @@ void Trekking::debug() {
 			if(command_stream->available()) {
 				current_command = command_stream->read();
 			}
-				readSonars();
+				m_pSensorArray->Update();
+				//readSonars();
 				printSonarInfo();
 				float sonarDistance = 6.5/100; // distance between the two ultrassound sensors
 
@@ -1203,12 +1075,7 @@ void Trekking::debug() {
 
 void Trekking::printSonarInfo()
 {
-	// sonar_list.read();
-	log << DELIMITER << left_sonar.getDistance();
-	log << DELIMITER << center_sonar.getDistance(); // is the right now
-	// log << DELIMITER << right_sonar.getDistance(); // is unpluged
-	log << DELIMITER;
-
+	m_pSensorArray->PrintLog(log, DELIMITER);
 }
 
 void Trekking::printEncodersInfo()

@@ -1,26 +1,30 @@
 #ifndef TREKKING_H
 #define TREKKING_H
 
+#include "../PID/PID.h"
+#include "../SensorArray/SensorArray.h"
+
 #include "../Log/log.h"
-#include "../XLMaxSonarEZ/sonarlist.h"
+#include "LinkedList.h"
+#include "../Ultrasonic/ultrasonic.h"
 #include "../Robot/Robot.h"
 #include "../Timer/timer.h"
 #include "trekkingpins.h"
 #include "trekkingmath.h"
 #include "position.h"
-#include "PIDControler.h"
 #include "../Robot/DualDriver.h"
 #include "DuoDriver.h"
-#include "TCS230.h"
+#include "../TCS230/TCS230.h"
 
 #include "../I2CDev/I2Cdev.h"
 #include "../MPU9150Lib/MPU9150Lib.h"
 #include "../CalLib/CalLib.h"
+/*
 #include <dmpKey.h>
 #include <dmpmap.h>
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
-
+//*/
 
 
 #ifndef PI
@@ -29,7 +33,7 @@
 
 class Trekking : public Robot{
 public:
-	Trekking(float safety_factor, DuoDriver* driver);
+	Trekking(float safety_factor, DuoDriver* driver, PID pidController, SensorArray *pSensorArray);
 	~Trekking();
 
 	void addTarget(Position *target);
@@ -55,6 +59,8 @@ public:
 	void finishLogLine();
 
 private:
+	PID m_PidController;
+	SensorArray *m_pSensorArray;
 	const char DELIMITER;
 	const float GEAR_RATE;
 	const float PULSES_PER_ROTATION;
@@ -102,12 +108,6 @@ private:
 	const int READ_MPU_TIME;
 
 	const float G_FACTOR;
-
-	//Sonars
-	XLMaxSonarEZ right_sonar;
-	XLMaxSonarEZ left_sonar;
-	XLMaxSonarEZ center_sonar;
-	SonarList sonar_list;
 
 	//Color Sensors
 	TCS230 right_color;
@@ -159,19 +159,19 @@ private:
 	TimerForMethods<Trekking> calibrate_angle_timer;
 	Timer control_clk;
 	float elapsed_time;
-
+/*
 	float kp_right, ki_right, kd_right, bsp_right;
 	float kp_left, ki_left, kd_left, bsp_left;
 	PIDControler right_pid;
 	PIDControler left_pid;
 	float left_vel_ref, right_vel_ref;
 	float pid_convertion_const;
-
+*/
 	float euler_radians[3];
 	float last_euler_radians[3];
 
-	float sonars[3];// esquerda,direita,centro
-	float last_sonars[3];
+	double sonars[3];// esquerda,direita,centro
+	double last_sonars[3];
 	bool first_sonars_sample;
 
 	bool first_mpu_sample;
@@ -232,7 +232,6 @@ private:
 	void updatePosition(float dT);
 	void resetPosition(Position new_position);
 	void readMPU();
-	void readSonars();
 	bool readColors();
 	void updateSpeeds();
 	float ppsToRps(int32_t pps);

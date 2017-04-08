@@ -25,23 +25,23 @@ void DuoDriver::setLeftPID(float kp, float ki, float kd){
   kp_left = kp;
 	ki_left = ki;
 	kd_left = kd;
-  l_pid.Init(kp_left, kd_left, ki_left, 1);
+  l_pid.SetConstants(kp_left, kd_left, ki_left);
 }
 
 void DuoDriver::setRightPID(float kp, float ki, float kd){
   kp_right = kp;
 	ki_right = ki;
 	kd_right = kd;
-  r_pid.Init(kp_right, kd_right, ki_right, 1);
+  r_pid.SetConstants(kp_right, kd_right, ki_right);
 }
 
 void DuoDriver::setRightPPS(float pps, float dT){
-  float pid_out = r_pid.run(pps, getRightPPS(), dT);
+  float pid_out = r_pid.Run(pps, getRightPPS(), dT);
   roboclaw.ForwardBackwardM1(input,mapPWM(pid_out));
 }
 
 void DuoDriver::setLeftPPS(float pps, float dT){
-  float pid_out = r_pid.run(pps, getLeftPPS(), dT);
+  float pid_out = r_pid.Run(pps, getLeftPPS(), dT);
   roboclaw.ForwardBackwardM2(input,mapPWM(pid_out));
 }
 

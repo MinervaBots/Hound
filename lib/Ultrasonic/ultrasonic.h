@@ -5,7 +5,7 @@
 #ifndef ULTRASONIC_H
 #define ULTRASONIC_H
 
-#include "../Common/sensor.h"
+#include "../Common/Sensor.h"
 
 #define TO_CM					58.2
 #define TO_INCH					148.0
@@ -22,6 +22,7 @@ class Ultrasonic: public Sensor
 {
 public:
 	Ultrasonic(int trigger_pin, int echo_pin);
+	Ultrasonic(int trigger_pin, int echo_pin, double minRange, double maxRange);
 
 	long getTimming();
 	long getRawDistance();
@@ -29,6 +30,7 @@ public:
 
 	void setSystem(DistanceSystem system);
 	void setTimeout(unsigned long timeout=DEFAULT_TIMEOUT);
+	void setRange(double minimum, double maximum);
 	double getRawValue();
 
 private:
