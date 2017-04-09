@@ -72,7 +72,7 @@ bool RoboClaw::read_n(uint8_t cnt,uint8_t address,uint8_t cmd,...)
 	int16_t data;
 	do{
 		flush();
-		
+
 		data=0;
 		crc_clear();
 		write(address);
@@ -94,7 +94,7 @@ bool RoboClaw::read_n(uint8_t cnt,uint8_t address,uint8_t cmd,...)
 			else{
 				break;
 			}
-			
+
 			if(data!=-1){
 				data = read(timeout);
 				crc_update(data);
@@ -144,11 +144,11 @@ bool RoboClaw::read_n(uint8_t cnt,uint8_t address,uint8_t cmd,...)
 }
 
 uint8_t RoboClaw::Read1(uint8_t address,uint8_t cmd,bool *valid){
-	uint8_t crc;
+	//uint8_t crc;
 
 	if(valid)
 		*valid = false;
-	
+
 	uint8_t value=0;
 	uint8_t trys=MAXRETRY;
 	int16_t data;
@@ -160,7 +160,7 @@ uint8_t RoboClaw::Read1(uint8_t address,uint8_t cmd,bool *valid){
 		crc_update(address);
 		write(cmd);
 		crc_update(cmd);
-	
+
 		data = read(timeout);
 		crc_update(data);
 		value=data;
@@ -181,16 +181,16 @@ uint8_t RoboClaw::Read1(uint8_t address,uint8_t cmd,bool *valid){
 			}
 		}
 	}while(trys--);
-	
+
 	return false;
 }
 
 uint16_t RoboClaw::Read2(uint8_t address,uint8_t cmd,bool *valid){
-	uint8_t crc;
+	//uint8_t crc;
 
 	if(valid)
 		*valid = false;
-	
+
 	uint16_t value=0;
 	uint8_t trys=MAXRETRY;
 	int16_t data;
@@ -202,17 +202,17 @@ uint16_t RoboClaw::Read2(uint8_t address,uint8_t cmd,bool *valid){
 		crc_update(address);
 		write(cmd);
 		crc_update(cmd);
-	
+
 		data = read(timeout);
 		crc_update(data);
 		value=(uint16_t)data<<8;
-		
+
 		if(data!=-1){
 			data = read(timeout);
 			crc_update(data);
 			value|=(uint16_t)data;
 		}
-		
+
 		if(data!=-1){
 			uint16_t ccrc;
 			data = read(timeout);
@@ -229,16 +229,16 @@ uint16_t RoboClaw::Read2(uint8_t address,uint8_t cmd,bool *valid){
 			}
 		}
 	}while(trys--);
-		
+
 	return false;
 }
 
 uint32_t RoboClaw::Read4(uint8_t address, uint8_t cmd, bool *valid){
-	uint8_t crc;
-	
+	//uint8_t crc;
+
 	if(valid)
 		*valid = false;
-	
+
 	uint32_t value=0;
 	uint8_t trys=MAXRETRY;
 	int16_t data;
@@ -260,7 +260,7 @@ uint32_t RoboClaw::Read4(uint8_t address, uint8_t cmd, bool *valid){
 			crc_update(data);
 			value|=(uint32_t)data<<16;
 		}
-		
+
 		if(data!=-1){
 			data = read(timeout);
 			crc_update(data);
@@ -272,7 +272,7 @@ uint32_t RoboClaw::Read4(uint8_t address, uint8_t cmd, bool *valid){
 			crc_update(data);
 			value|=(uint32_t)data;
 		}
-		
+
 		if(data!=-1){
 			uint16_t ccrc;
 			data = read(timeout);
@@ -289,16 +289,16 @@ uint32_t RoboClaw::Read4(uint8_t address, uint8_t cmd, bool *valid){
 			}
 		}
 	}while(trys--);
-	
+
 	return false;
 }
 
 uint32_t RoboClaw::Read4_1(uint8_t address, uint8_t cmd, uint8_t *status, bool *valid){
-	uint8_t crc;
+	//uint8_t crc;
 
 	if(valid)
 		*valid = false;
-	
+
 	uint32_t value=0;
 	uint8_t trys=MAXRETRY;
 	int16_t data;
@@ -332,14 +332,14 @@ uint32_t RoboClaw::Read4_1(uint8_t address, uint8_t cmd, uint8_t *status, bool *
 			crc_update(data);
 			value|=(uint32_t)data;
 		}
-	
+
 		if(data!=-1){
 			data = read(timeout);
 			crc_update(data);
 			if(status)
 				*status = data;
 		}
-				
+
 		if(data!=-1){
 			uint16_t ccrc;
 			data = read(timeout);
@@ -443,13 +443,13 @@ bool RoboClaw::ReadVersion(uint8_t address,char *version){
 		flush();
 
 		data = 0;
-		
+
 		crc_clear();
 		write(address);
 		crc_update(address);
 		write(GETVERSION);
 		crc_update(GETVERSION);
-	
+
 		uint8_t i;
 		for(i=0;i<48;i++){
 			if(data!=-1){
@@ -475,7 +475,7 @@ bool RoboClaw::ReadVersion(uint8_t address,char *version){
 			}
 		}
 	}while(trys--);
-	
+
 	return false;
 }
 
@@ -669,7 +669,7 @@ bool RoboClaw::ReadMinMaxMainVoltages(uint8_t address,uint16_t &min,uint16_t &ma
 	}
 	return valid;
 }
-			
+
 bool RoboClaw::ReadMinMaxLogicVoltages(uint8_t address,uint16_t &min,uint16_t &max){
 	bool valid;
 	uint32_t value = Read4(address,GETMINMAXLOGICVOLTAGES,&valid);
@@ -680,14 +680,14 @@ bool RoboClaw::ReadMinMaxLogicVoltages(uint8_t address,uint16_t &min,uint16_t &m
 	return valid;
 }
 
-bool RoboClaw::SetM1PositionPID(uint8_t address,float kp_fp,float ki_fp,float kd_fp,uint32_t kiMax,uint32_t deadzone,uint32_t min,uint32_t max){			
+bool RoboClaw::SetM1PositionPID(uint8_t address,float kp_fp,float ki_fp,float kd_fp,uint32_t kiMax,uint32_t deadzone,uint32_t min,uint32_t max){
 	uint32_t kp=kp_fp*1024;
 	uint32_t ki=ki_fp*1024;
 	uint32_t kd=kd_fp*1024;
 	return write_n(30,address,SETM1POSPID,SetDWORDval(kd),SetDWORDval(kp),SetDWORDval(ki),SetDWORDval(kiMax),SetDWORDval(deadzone),SetDWORDval(min),SetDWORDval(max));
 }
 
-bool RoboClaw::SetM2PositionPID(uint8_t address,float kp_fp,float ki_fp,float kd_fp,uint32_t kiMax,uint32_t deadzone,uint32_t min,uint32_t max){			
+bool RoboClaw::SetM2PositionPID(uint8_t address,float kp_fp,float ki_fp,float kd_fp,uint32_t kiMax,uint32_t deadzone,uint32_t min,uint32_t max){
 	uint32_t kp=kp_fp*1024;
 	uint32_t ki=ki_fp*1024;
 	uint32_t kd=kd_fp*1024;
@@ -737,8 +737,8 @@ bool RoboClaw::SetPinFunctions(uint8_t address, uint8_t S3mode, uint8_t S4mode, 
 }
 
 bool RoboClaw::GetPinFunctions(uint8_t address, uint8_t &S3mode, uint8_t &S4mode, uint8_t &S5mode){
-	uint8_t crc;
-	bool valid = false;
+	//uint8_t crc;
+	//bool valid = false;
 	uint8_t val1,val2,val3;
 	uint8_t trys=MAXRETRY;
 	int16_t data;
@@ -750,7 +750,7 @@ bool RoboClaw::GetPinFunctions(uint8_t address, uint8_t &S3mode, uint8_t &S4mode
 		crc_update(address);
 		write(GETPINFUNCTIONS);
 		crc_update(GETPINFUNCTIONS);
-	
+
 		data = read(timeout);
 		crc_update(data);
 		val1=data;
@@ -760,13 +760,13 @@ bool RoboClaw::GetPinFunctions(uint8_t address, uint8_t &S3mode, uint8_t &S4mode
 			crc_update(data);
 			val2=data;
 		}
-		
+
 		if(data!=-1){
 			data = read(timeout);
 			crc_update(data);
 			val3=data;
 		}
-		
+
 		if(data!=-1){
 			uint16_t ccrc;
 			data = read(timeout);
@@ -785,7 +785,7 @@ bool RoboClaw::GetPinFunctions(uint8_t address, uint8_t &S3mode, uint8_t &S4mode
 			}
 		}
 	}while(trys--);
-	
+
 	return false;
 }
 

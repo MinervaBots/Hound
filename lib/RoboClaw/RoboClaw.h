@@ -2,7 +2,6 @@
 #define RoboClaw_h
 
 #include <stdarg.h>
-
 #include "../BMSerial/BMSerial.h"
 
 /******************************************************************************
@@ -18,7 +17,7 @@ class RoboClaw : public BMSerial
 {
 	uint16_t crc;
 	uint32_t timeout;
-	
+
 	enum {M1FORWARD = 0,
 			M1BACKWARD = 1,
 			SETMINMB = 2,
@@ -114,7 +113,7 @@ class RoboClaw : public BMSerial
 public:
 	// public methods
 	RoboClaw(uint8_t receivePin, uint8_t transmitPin,uint32_t tout);	//ack option only available on 3.1.8 and newer firmware
-	
+
 	~RoboClaw();
 
 	bool ForwardM1(uint8_t address, uint8_t speed);
@@ -208,7 +207,7 @@ public:
 	bool ReadM2MaxCurrent(uint8_t address,uint32_t &max);
 	bool SetPWMMode(uint8_t address, uint8_t mode);
 	bool GetPWMMode(uint8_t address, uint8_t &mode);
-	
+
 private:
 	void crc_clear();
 	void crc_update (uint8_t data);
@@ -219,7 +218,7 @@ private:
 	uint32_t Read4(uint8_t address,uint8_t cmd,bool *valid);
 	uint16_t Read2(uint8_t address,uint8_t cmd,bool *valid);
 	uint8_t Read1(uint8_t address,uint8_t cmd,bool *valid);
-	
+
 };
 
 #endif
