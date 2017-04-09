@@ -4,6 +4,7 @@
 // cone1 = (10, -5, 0)
 
 #include <EEPROM.h>
+#include <Wire.h>
 #include "Trekking.h"
 #include "Ultrasonic.h"
 
@@ -41,9 +42,9 @@ void setup() {
 
   Wire.begin();
 
-  sensorArray.AddSensor(&Ultrasonic(LEFT_SONAR_TX_PIN, LEFT_SONAR_RX_PIN), -1.5f, 200.0);
-  sensorArray.AddSensor(&Ultrasonic(CENTER_SONAR_TX_PIN, CENTER_SONAR_RX_PIN), 0.0f, 150.0);
-  sensorArray.AddSensor(&Ultrasonic(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN), 1.5f, 150.0);
+  sensorArray.AddSensor(new Ultrasonic(LEFT_SONAR_TX_PIN, LEFT_SONAR_RX_PIN), -1.5f, 200.0);
+  sensorArray.AddSensor(new Ultrasonic(CENTER_SONAR_TX_PIN, CENTER_SONAR_RX_PIN), 0.0f, 150.0);
+  sensorArray.AddSensor(new Ultrasonic(RIGHT_SONAR_TX_PIN, RIGHT_SONAR_RX_PIN), 1.5f, 150.0);
 
   trekking.addTarget(cone_1);
   trekking.addTarget(cone_2);

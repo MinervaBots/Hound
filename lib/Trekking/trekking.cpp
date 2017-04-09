@@ -31,10 +31,6 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 	MAX_LINEAR_VELOCITY(TWO_PI_R*SAFE_RPS),
 	MAX_ANGULAR_VELOCITY(TWO_PI_R*(2*SAFE_RPS)/(2*DISTANCE_FROM_RX)),
 
-	//Distances for Ultrasound
-	MAX_SONAR_DISTANCE(350), //200
-	MIN_SONAR_DISTANCE(40),
-
 	//White color parameter for Color Sensors
 	WHITE_VALUE(30),
 
@@ -110,16 +106,17 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 	ki_left = 8;    ki_right = 8;
 	kd_left = 0;    kd_right = 0;
 	bsp_left = 0.8; bsp_right = 0.8;
-*/
-	last_desired_refined_v = 0;
 
+	last_desired_refined_v = 0;
+//*/
 	kp = 1;
 	ki = 0;
 	kd = 0;
 
 	first_mpu_sample = true;
-	is_turning = 0;
 /*
+	is_turning = 0;
+
 	pid_convertion_const = (1000 * 2 * 3.1415) / 1024.0;
 
 	right_pid.Init(kp_right, kd_right, ki_right, bsp_right);
@@ -139,6 +136,7 @@ Trekking::~Trekking() {
 		log.info("target", "removed target");
 		delete target;
 	}
+	delete m_pSensorArray;
 	log.info("memory management", "done");
 }
 
@@ -558,7 +556,7 @@ void Trekking::search(float dT) {
 		is_tracking = true;
 		q_desired = targets.get(current_target_index);
 		current_partial_index = 1;
-		correcao = false;
+		//correcao = false;
 		last_desired_v = 1;
 		tracking_time = 0;
 	}
@@ -624,37 +622,56 @@ void Trekking::search(float dT) {
 
 void Trekking::refinedSearch(float deltaTime)
 {
-	/* Verificar se não está em cima da base branca
-	{
-		controlMotors(0, 0, false, dT);
-		operation_mode = &Trekking::lighting;
-
-		current_position.setX(targets.get(current_target_index)->getX());
-		current_position.setY(targets.get(current_target_index)->getY());
-		// current_position.set()
-		last_desired_refined_v = 0;
-		integral_error_v = 0;
-		integral_error_w = 0;
-		m_PidController.Reset();
-	}
-	//*/
-
+	bool found = false;
 	float error = m_pSensorArray->Update();
-	if(m_pSensorArray->DetectedCount > 0)
+	if(m_pSensorArray->DetectedCount == 0)
 	{
-		float power = m_PidController.Run(error, deltaTime);
-		controlMotors(0, power, 0, deltaTime);
+		// Nada foi detectado
+		for (size_t i = 0; i < m_pSensorArray->Count(); i++)
+		{
+			// Se qualquer um dos sensores teve como ultima leitura válida
+			// Algo muito proximo dos cones (ou do mínimo que podemos ler com confiança),
+			// Verifica se estamos na base branca, se sim, ativa a sirene
+			Sensor *pSensor = m_pSensorArray->GetSensorData(i).pSensor;
+			if(pSensor->LastValidValue < 30) // TODO - Definir constante para dizer que o Trekking chegou perto o suficiente
+			{
+				// Verifica se não está em cima da base branca
+				if(right_color.isWhite() || center_color.isWhite() || left_color.isWhite())
+				{
+					controlMotors(0, 0, false, deltaTime);
+					operation_mode = &Trekking::lighting;
+
+					current_position.setX(targets.get(current_target_index)->getX());
+					current_position.setY(targets.get(current_target_index)->getY());
+					// current_position.set()
+					/*
+					last_desired_refined_v = 0;
+					integral_error_v = 0;
+					integral_error_w = 0;
+					//*/
+					m_PidController.Reset();
+					found = true;
+				}
+				break;
+			}
+		}
+
+		if(!found)
+		{
+			// Nesse caso não temos nenhum cone a vista
+			// E como a detecção da base branca foi feita lá em cima, não é o caso de estar a < 30cm
+			// Dá uma voltinha pra encontrar o cone?
+			controlMotors(0, -1, 0, deltaTime);
+		}
 	}
 	else
 	{
-		// Nesse caso não temos nenhum cone a vista
-		// E como a detecção da base branca foi feita lá em cima, não é o caso de estar a < 30cm
-		// Dá uma voltinha pra encontrar o cone?
-
-		controlMotors(20, -1, 0, deltaTime);
+		// Temos algum cone sendo visto, roda o PID e segue na direção dele
+		float power = m_PidController.Run(error, deltaTime);
+		controlMotors(10, power, 0, deltaTime);
 	}
 
-
+	// Print dos valores para teste
 	if(is_testing_refinedSearch){
 		log << DELIMITER << "<REAL>";
 		// printTime();
@@ -729,16 +746,15 @@ void Trekking::reset() {
 	is_testing_refinedSearch = false;
 	is_testing_search = false;
 	first_mpu_sample = true;
-	first_sonars_sample = true;
+	//first_sonars_sample = true;
 	current_target_index = 0;
 	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));
 	/*
 	left_vel_ref = 0;
 	right_vel_ref = 0;
-	*/
 	integral_error_v = 0;
 	integral_error_w = 0;
-
+	//*/
 	elapsed_time = 0;
 	last_update_time = millis();
 
@@ -916,6 +932,8 @@ void Trekking::debug() {
 				m_pSensorArray->Update();
 				//readSonars();
 				printSonarInfo();
+
+				/* TODO - Rever como debugar esses valores. Talvez precise de modificações em SensorArray
 				float sonarDistance = 6.5/100; // distance between the two ultrassound sensors
 
 				float l_sonar = sonars[0]/100;
@@ -936,6 +954,7 @@ void Trekking::debug() {
 
 				log << DELIMITER << h;
 				log << DELIMITER << DELIMITER << cos0;
+				//*/
 				finishLogLine();
 		}
 	}

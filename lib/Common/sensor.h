@@ -9,6 +9,10 @@ class Sensor
 {
 public:
 	Sensor(int samples=10);
+	virtual ~Sensor();
+
+	double LastValidValue;
+
 	virtual double getRawValue() = 0;
 	virtual double getMeanValue();
 	virtual double getMeanValue(int samples);

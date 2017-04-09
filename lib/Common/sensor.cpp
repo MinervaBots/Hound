@@ -6,6 +6,11 @@ Sensor::Sensor(int samples)
   setRange(0,1023);
 }
 
+Sensor::~Sensor()
+{
+
+}
+
 double Sensor::getMeanValue()
 {
 	return getMeanValue(this->samples);
@@ -31,6 +36,7 @@ double Sensor::getMeanValue(int samples)
 		mean /= used_samples;
 		if(mean > minimum_range && mean < maximum_range)
 		{
+			LastValidValue = mean;
 			return mean;
 		}
 	}

@@ -8,6 +8,25 @@ SensorArray::SensorArray() :
 
 }
 
+SensorArray::~SensorArray()
+{
+  for(int i = m_Sensors.size() - 1; i >= 0; i--)
+  {
+		delete m_Sensors.remove(0).pSensor;
+  }
+}
+
+size_t SensorArray::Count()
+{
+  return m_Sensors.size();
+}
+
+
+SensorData SensorArray::GetSensorData(int index)
+{
+  return m_Sensors.get(index);
+}
+
 void SensorArray::AddSensor(Sensor *pSensor, float weight, double valueForDetection)
 {
   SensorData sensor = SensorData();

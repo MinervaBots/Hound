@@ -22,7 +22,8 @@
 #include <inv_mpu.h>
 //*/
 
-class Trekking : public Robot{
+class Trekking : public Robot
+{
 public:
 	Trekking(float safety_factor, DuoDriver* driver, PID pidController, SensorArray *pSensorArray);
 	~Trekking();
@@ -71,10 +72,6 @@ private:
 	//Velocities
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
-
-	//Distances for Ultrasound
-	const float MAX_SONAR_DISTANCE;
-	const float MIN_SONAR_DISTANCE; // [m]
 
 	//White color parameter for Color Sensors
 	const int WHITE_VALUE;
@@ -157,14 +154,15 @@ private:
 	PIDControler left_pid;
 	float left_vel_ref, right_vel_ref;
 	float pid_convertion_const;
-*/
+//*/
 	float euler_radians[3];
 	float last_euler_radians[3];
-
+/*
 	double sonars[3];// esquerda,direita,centro
 	double last_sonars[3];
 	bool first_sonars_sample;
 
+//*/
 	bool first_mpu_sample;
 	float initial_euler_radians;
 	MPU9150Lib MPU;
@@ -197,9 +195,9 @@ private:
 
 	float tracking_time;
 
-	bool correcao;
 	float last_desired_v;
-
+/*
+	bool correcao;
 	float last_desired_refined_v;
 	float last_desired_refined_w;
 	float integral_error_v;
@@ -208,7 +206,7 @@ private:
 	bool is_turning_right = false;
 	bool is_turning_left = false;
 	bool is_turning = false;
-
+//*/
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
