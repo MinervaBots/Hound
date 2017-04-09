@@ -1,25 +1,29 @@
-#include "ultrasonic.h"
+#include "Ultrasonic.h"
 
-Ultrasonic::Ultrasonic(int trigger_pin, int echo_pin)
+
+Ultrasonic::Ultrasonic(int trigger_pin, int echo_pin) :
+	trigger_pin(trigger_pin),
+	echo_pin(echo_pin)
 {
-		this->trigger_pin = trigger_pin;
-		this->echo_pin = echo_pin;
+	pinMode(trigger_pin, OUTPUT);
+	pinMode(echo_pin, INPUT);
+	setTimeout(DEFAULT_TIMEOUT);
+	setSystem(CM);
+}
 
-		pinMode(trigger_pin, OUTPUT);
-		pinMode(echo_pin, INPUT);
-
-		setRange(0,100);
-		setSystem(CM);
-		setTimeout(DEFAULT_TIMEOUT);
+Ultrasonic::Ultrasonic(int trigger_pin, int echo_pin, double minRange, double maxRange) :
+	Ultrasonic(trigger_pin, echo_pin)
+{
+		setRange(minRange, maxRange);
 }
 
 long Ultrasonic::getTimming()
 {
-	digitalWrite(trigger_pin, LOW); 
-	delayMicroseconds(2); 
+	digitalWrite(trigger_pin, LOW);
+	delayMicroseconds(2);
 
 	digitalWrite(trigger_pin, HIGH);
-	delayMicroseconds(10); 
+	delayMicroseconds(10);
 
 	digitalWrite(trigger_pin, LOW);
 
@@ -43,7 +47,7 @@ long Ultrasonic::getRawDistance()
 	return distance;
 }
 
-data_t Ultrasonic::getDistance()
+double Ultrasonic::getDistance()
 {
 	return getMeanValue();
 }
@@ -65,7 +69,13 @@ void Ultrasonic::setTimeout(unsigned long timeout)
 	this->timeout = timeout;
 }
 
-data_t Ultrasonic::getRawValue()
+void Ultrasonic::setRange(double minimum, double maximum)
 {
-	return (data_t) getRawDistance();
+	Sensor::setRange(minimum, maximum);
+	setTimeout(maximum * system_conv);
+}
+
+double Ultrasonic::getRawValue()
+{
+	return getRawDistance();
 }

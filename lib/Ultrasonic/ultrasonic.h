@@ -1,11 +1,11 @@
 /*
  *HC-SR04 Ultrasonic sensor
  */
- 
+
 #ifndef ULTRASONIC_H
 #define ULTRASONIC_H
 
-#include "../Common/sensor.h"
+#include "../Common/Sensor.h"
 
 #define TO_CM					58.2
 #define TO_INCH					148.0
@@ -22,19 +22,21 @@ class Ultrasonic: public Sensor
 {
 public:
 	Ultrasonic(int trigger_pin, int echo_pin);
+	Ultrasonic(int trigger_pin, int echo_pin, double minRange, double maxRange);
 
 	long getTimming();
 	long getRawDistance();
-	data_t getDistance();
+	double getDistance();
 
 	void setSystem(DistanceSystem system);
 	void setTimeout(unsigned long timeout=DEFAULT_TIMEOUT);
-	data_t getRawValue();
+	void setRange(double minimum, double maximum);
+	double getRawValue();
 
 private:
 
 	int trigger_pin, echo_pin;
-	data_t system_conv;		//System convertion
+	double system_conv;		//System convertion
 	unsigned long timeout;
 };
 

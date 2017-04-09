@@ -1,35 +1,31 @@
 #ifndef TREKKING_H
 #define TREKKING_H
 
-#include "../Log/log.h"
-#include "../XLMaxSonarEZ/sonarlist.h"
-#include "../Robot/Robot.h"
-#include "../Timer/timer.h"
-#include "trekkingpins.h"
-#include "trekkingmath.h"
-#include "position.h"
-#include "PIDControler.h"
-#include "../Robot/DualDriver.h"
+
+#include "TrekkingPins.h"
+#include "TrekkingMath.h"
+#include "Position.h"
 #include "DuoDriver.h"
-#include "TCS230.h"
 
-#include "../I2CDev/I2Cdev.h"
+#include "../PID/PID.h"
+#include "../SensorArray/SensorArray.h"
+
+#include "../Log/Log.h"
+#include "../LinkedList/LinkedList.h"
+#include "../Robot/Robot.h"
+#include "../Timer/Timer.h"
+#include "../TCS230/TCS230.h"
 #include "../MPU9150Lib/MPU9150Lib.h"
-#include "../CalLib/CalLib.h"
-#include <dmpKey.h>
-#include <dmpmap.h>
+
+/*
+//Deixa isso aqui porque aparentemente sem esse #include (mesmo que comentado), ele falha ao compilar
 #include <inv_mpu.h>
-#include <inv_mpu_dmp_motion_driver.h>
+//*/
 
-
-
-#ifndef PI
-#define PI 3.141592653589793238;
-#endif
-
-class Trekking : public Robot{
+class Trekking : public Robot
+{
 public:
-	Trekking(float safety_factor, DuoDriver* driver);
+	Trekking(float safety_factor, DuoDriver* driver, PID pidController, SensorArray *pSensorArray);
 	~Trekking();
 
 	void addTarget(Position *target);
@@ -55,6 +51,8 @@ public:
 	void finishLogLine();
 
 private:
+	PID m_PidController;
+	SensorArray *m_pSensorArray;
 	const char DELIMITER;
 	const float GEAR_RATE;
 	const float PULSES_PER_ROTATION;
@@ -75,39 +73,30 @@ private:
 	const float MAX_LINEAR_VELOCITY;  // [m/s]
 	const float MAX_ANGULAR_VELOCITY; // [ang/s]
 
-	//Distances for Ultrasound
-	const float MAX_SONAR_DISTANCE;
-	const float MIN_SONAR_DISTANCE; // [m]
-
 	//White color parameter for Color Sensors
 	const int WHITE_VALUE;
 
 	//Motors
+/*
 	const byte MAX_MOTOR_PWM;
 	const byte MIN_MOTOR_PWM;
 
 	const int COMMAND_BAUD_RATE;
 	const int LOG_BAUD_RATE;
 	const int ENCODER_BAUD_RATE;
-
+//*/
 	const int MPU_UPDATE_RATE; //defines the rate (in Hz) at which the MPU updates the magnetometer data
 	const int MAG_UPDATE_RATE; // should be less than or equal to the MPU_UPDATE_RATE
 	const int MPU_LPF_RATE; // is the low pas filter rate and can be between 5 and 188Hz
 	const int  MPU_MAG_MIX_GYRO_AND_MAG;
 
 	const int LIGHT_DURATION;
-	const float PROXIMITY_RADIUS;
+	//const float PROXIMITY_RADIUS;
 
-	const int READ_ENCODERS_TIME;
+	//const int READ_ENCODERS_TIME; //-
 	const int READ_MPU_TIME;
 
-	const float G_FACTOR;
-
-	//Sonars
-	XLMaxSonarEZ right_sonar;
-	XLMaxSonarEZ left_sonar;
-	XLMaxSonarEZ center_sonar;
-	SonarList sonar_list;
+	//const float G_FACTOR; //-
 
 	//Color Sensors
 	TCS230 right_color;
@@ -115,7 +104,7 @@ private:
 	TCS230 left_color;
 
 	LinkedList<Position *> targets;
-	LinkedList<Position *> obstacles;
+	//LinkedList<Position *> obstacles;
 
 	Position init_position;
 
@@ -123,17 +112,17 @@ private:
 	float desired_angular_velocity;
 
 	int current_target_index;
-	int current_partial_index;
+	//int current_partial_index;
 
 	//Input states
 	bool init_button;
 	bool emergency_button;
 	bool operation_mode_switch;
-
+	/*
 	int min_distance_to_enable_lights;
 	int min_distance_to_refine_search;
-
 	bool is_aligned;
+	//*/
 
 	char current_command;
 
@@ -149,48 +138,49 @@ private:
 
 	//Holds witch is the serial stream to receive the commands
 	Stream *command_stream;
-	Stream *log_stream;
-	Stream *encoder_stream;
+	//Stream *log_stream;
+	//Stream *encoder_stream;
 
 	//Timers
 	TimerForMethods<Trekking> mpu_timer;
 	TimerForMethods<Trekking> sirene_timer;
 	// TimerForMethods<Trekking> tracking_regulation_timer;
 	TimerForMethods<Trekking> calibrate_angle_timer;
-	Timer control_clk;
+	//Timer control_clk; //-
 	float elapsed_time;
-
+/*
 	float kp_right, ki_right, kd_right, bsp_right;
 	float kp_left, ki_left, kd_left, bsp_left;
 	PIDControler right_pid;
 	PIDControler left_pid;
 	float left_vel_ref, right_vel_ref;
 	float pid_convertion_const;
-
+//*/
 	float euler_radians[3];
-	float last_euler_radians[3];
-
-	float sonars[3];// esquerda,direita,centro
-	float last_sonars[3];
+	//float last_euler_radians[3];
+/*
+	double sonars[3];// esquerda,direita,centro
+	double last_sonars[3];
 	bool first_sonars_sample;
 
-	bool first_mpu_sample;
+//*/
+	//bool first_mpu_sample;
 	float initial_euler_radians;
 	MPU9150Lib MPU;
-	bool mpu_first_time;
+	//bool mpu_first_time;
 	bool is_auto_message_sent =false;
 	bool is_manual_message_sent =false;
 
 	float l_rotations_per_sec, r_rotations_per_sec;
 	Position current_position;
 	unsigned long last_update_time;
-	unsigned long last_update_time_2;
+	//unsigned long last_update_time_2;
 	Position *q_desired;
-
+	/*
 	float kp;
 	float ki;
 	float kd;
-
+	//*/
 	bool is_testing_refinedSearch = false;
 	bool is_testing_openloop = false;
 	bool is_testing_search = false;
@@ -206,9 +196,9 @@ private:
 
 	float tracking_time;
 
-	bool correcao;
 	float last_desired_v;
-
+/*
+	bool correcao;
 	float last_desired_refined_v;
 	float last_desired_refined_w;
 	float integral_error_v;
@@ -217,7 +207,7 @@ private:
 	bool is_turning_right = false;
 	bool is_turning_left = false;
 	bool is_turning = false;
-
+//*/
 
 	/*----|Matlab related functions|-----------------------------------------*/
 	Position plannedPosition(bool is_trajectory_linear, unsigned long t);
@@ -232,7 +222,6 @@ private:
 	void updatePosition(float dT);
 	void resetPosition(Position new_position);
 	void readMPU();
-	void readSonars();
 	bool readColors();
 	void updateSpeeds();
 	float ppsToRps(int32_t pps);

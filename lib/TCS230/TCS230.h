@@ -17,7 +17,10 @@
 #define NULL 0
 #endif
 
-class TCS230 {
+#include "../Common/Sensor.h"
+
+class TCS230 : public Sensor
+{
 public:
     TCS230(int s0_pin, int s1_pin, int s2_pin, int s3_pin, int out_pin, int WHITE_VALUE);
 
@@ -30,6 +33,12 @@ public:
 
     //This method returns if an object is white or not;
     bool isWhite();
+
+    /*
+      This method returns de grey scale value of the readings
+      @return (R+G+B/3)
+    */
+    double getRawValue();
 
     //*****************************************************************************************
     void printRGBW(float r, float g, float b, float w);
