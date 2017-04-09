@@ -35,24 +35,24 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 	WHITE_VALUE(30),
 
 	//Motors
+	/*
 	MAX_MOTOR_PWM(130),
 	MIN_MOTOR_PWM(100),
-
 	COMMAND_BAUD_RATE(9600),
 	LOG_BAUD_RATE(9600),
 	ENCODER_BAUD_RATE(57600),
-
+	//*/
 	MPU_UPDATE_RATE(20),
 	MAG_UPDATE_RATE(10),
 	MPU_LPF_RATE(40),
 	MPU_MAG_MIX_GYRO_AND_MAG(10),
 
 	LIGHT_DURATION(3000),
-	PROXIMITY_RADIUS(3.0),
+	//PROXIMITY_RADIUS(3.0),
 
-	READ_ENCODERS_TIME(30),
+	//READ_ENCODERS_TIME(30),
 	READ_MPU_TIME(30),
-	G_FACTOR(160*9.8),
+	//G_FACTOR(160*9.8),
 
 	//sonar_list(Sonar::CHAIN),
 
@@ -62,7 +62,7 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 	left_color(LEFT_COLOR_S0,LEFT_COLOR_S1,LEFT_COLOR_S2,LEFT_COLOR_S3,LEFT_COLOR_OUTPUT,WHITE_VALUE),
 
 	targets(),
-	obstacles(),
+	//obstacles(),
 	init_position(0, 0, 0),
 	encoder_stream(&Serial2),
 
@@ -113,7 +113,7 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 	ki = 0;
 	kd = 0;
 
-	first_mpu_sample = true;
+	//first_mpu_sample = true;
 /*
 	is_turning = 0;
 
@@ -158,7 +158,7 @@ void Trekking::start() {
 	// control_clk.start();
 	elapsed_time = 0;
 	last_update_time = millis();
-	last_update_time_2 = millis();
+	//last_update_time_2 = millis();
 }
 
 void Trekking::update() {
@@ -555,7 +555,7 @@ void Trekking::search(float dT) {
 		// tracking_regulation_timer.start();
 		is_tracking = true;
 		q_desired = targets.get(current_target_index);
-		current_partial_index = 1;
+		//current_partial_index = 1;
 		//correcao = false;
 		last_desired_v = 1;
 		tracking_time = 0;
@@ -737,15 +737,17 @@ void Trekking::reset() {
 	//Trekking variables
 	desired_linear_velocity = TWO_PI_R*SAFE_RPS;
 	desired_angular_velocity = 0;
+	/*
 	min_distance_to_enable_lights = 0;
 	min_distance_to_refine_search = 0;
+	//*/
 	current_command = ' ';
-	is_aligned = false;
+	//is_aligned = false;
 	is_tracking = false;
 	is_testing_openloop = false;
 	is_testing_refinedSearch = false;
 	is_testing_search = false;
-	first_mpu_sample = true;
+	//first_mpu_sample = true;
 	//first_sonars_sample = true;
 	current_target_index = 0;
 	distance_to_target = current_position.distanceFrom(targets.get(current_target_index));

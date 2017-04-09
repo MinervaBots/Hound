@@ -92,10 +92,10 @@ private:
 	const int LIGHT_DURATION;
 	const float PROXIMITY_RADIUS;
 
-	const int READ_ENCODERS_TIME;
+	//const int READ_ENCODERS_TIME; //-
 	const int READ_MPU_TIME;
 
-	const float G_FACTOR;
+	//const float G_FACTOR; //-
 
 	//Color Sensors
 	TCS230 right_color;
@@ -103,7 +103,7 @@ private:
 	TCS230 left_color;
 
 	LinkedList<Position *> targets;
-	LinkedList<Position *> obstacles;
+	//LinkedList<Position *> obstacles;
 
 	Position init_position;
 
@@ -111,17 +111,17 @@ private:
 	float desired_angular_velocity;
 
 	int current_target_index;
-	int current_partial_index;
+	//int current_partial_index;
 
 	//Input states
 	bool init_button;
 	bool emergency_button;
 	bool operation_mode_switch;
-
+	/*
 	int min_distance_to_enable_lights;
 	int min_distance_to_refine_search;
-
 	bool is_aligned;
+	//*/
 
 	char current_command;
 
@@ -145,7 +145,7 @@ private:
 	TimerForMethods<Trekking> sirene_timer;
 	// TimerForMethods<Trekking> tracking_regulation_timer;
 	TimerForMethods<Trekking> calibrate_angle_timer;
-	Timer control_clk;
+	//Timer control_clk; //-
 	float elapsed_time;
 /*
 	float kp_right, ki_right, kd_right, bsp_right;
@@ -156,24 +156,24 @@ private:
 	float pid_convertion_const;
 //*/
 	float euler_radians[3];
-	float last_euler_radians[3];
+	//float last_euler_radians[3];
 /*
 	double sonars[3];// esquerda,direita,centro
 	double last_sonars[3];
 	bool first_sonars_sample;
 
 //*/
-	bool first_mpu_sample;
+	//bool first_mpu_sample;
 	float initial_euler_radians;
 	MPU9150Lib MPU;
-	bool mpu_first_time;
+	//bool mpu_first_time;
 	bool is_auto_message_sent =false;
 	bool is_manual_message_sent =false;
 
 	float l_rotations_per_sec, r_rotations_per_sec;
 	Position current_position;
 	unsigned long last_update_time;
-	unsigned long last_update_time_2;
+	//unsigned long last_update_time_2;
 	Position *q_desired;
 
 	float kp;
