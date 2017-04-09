@@ -41,10 +41,14 @@
 #define i2c_read    !I2Cdev::readBytes
 #define delay_ms    delay
 
-static inline int reg_int_cb(struct int_param_s *int_param)
+static inline /*int*/void reg_int_cb(struct int_param_s *int_param) // void -> Fix pra warning
 {
+  //return NULL;
 }
+
+#ifndef min
 #define min(a,b) ((a<b)?a:b)
+#endif
 
 #if !defined MPU6050 && !defined MPU9150 && !defined MPU6500 && !defined MPU9250
 #error  Which gyro are you using? Define MPUxxxx in your compiler options.
@@ -581,7 +585,7 @@ int mpu_init(struct int_param_s *int_param)
 {
     unsigned char data[6], rev;
     int errCode;
-    
+
     /* Reset device. */
     data[0] = BIT_RESET;
     if (i2c_write(st->hw->addr, st->reg->pwr_mgmt_1, 1, data))
@@ -694,7 +698,7 @@ int mpu_init(struct int_param_s *int_param)
     errCode = setup_compass();
     if (errCode != 0) {
 #ifdef MPU_DEBUG
-       Serial.print("Setup compass failed: "); Serial.println(errCode); 
+       Serial.print("Setup compass failed: "); Serial.println(errCode);
 #endif
     }
     if (mpu_set_compass_sample_rate(10))
@@ -2191,18 +2195,18 @@ int mpu_load_firmware(unsigned short length, const unsigned char *firmware,
 
     if (!firmware)
         return -2;
-        
+
     progBuffer = (uint8_t *)malloc(LOAD_CHUNK);
     for (ii = 0; ii < length; ii += this_write) {
         this_write = min(LOAD_CHUNK, length - ii);
-        
-        for (int progIndex = 0; progIndex < this_write; progIndex++)
+
+        for (unsigned int progIndex = 0; progIndex < this_write; progIndex++)
 #ifdef __SAM3X8E__
             progBuffer[progIndex] = firmware[ii + progIndex];
 #else
             progBuffer[progIndex] = pgm_read_byte(firmware + ii + progIndex);
 #endif
-            
+
         if ((errCode = mpu_write_mem(ii, this_write, progBuffer))) {
 #ifdef MPU_DEBUG
             Serial.print("fimrware write failed: ");
@@ -2210,20 +2214,20 @@ int mpu_load_firmware(unsigned short length, const unsigned char *firmware,
 #endif
             return -3;
         }
-        
+
         if (mpu_read_mem(ii, this_write, cur))
             return -4;
-            
+
         if (memcmp(progBuffer, cur, this_write)) {
 #ifdef MPU_DEBUG
             Serial.print("Firmware compare failed addr "); Serial.println(ii);
             for (int i = 0; i < 10; i++) {
-              Serial.print(progBuffer[i]); 
+              Serial.print(progBuffer[i]);
               Serial.print(" ");
             }
             Serial.println();
             for (int i = 0; i < 10; i++) {
-              Serial.print(cur[i]); 
+              Serial.print(cur[i]);
               Serial.print(" ");
             }
             Serial.println();
@@ -2692,7 +2696,7 @@ int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
 #endif
     } else {
         /* Don't "restore" the previous state if no state has been saved. */
-        int ii;
+        unsigned int ii;
         char *cache_ptr = (char*)&st->chip_cfg.cache;
         for (ii = 0; ii < sizeof(st->chip_cfg.cache); ii++) {
             if (cache_ptr[ii] != 0)
@@ -2734,4 +2738,3 @@ lp_int_restore:
 /**
  *  @}
  */
-

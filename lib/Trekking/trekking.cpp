@@ -1,6 +1,5 @@
-#include "trekking.h"
-
-#define SONAR_TIMEOUT 58 * 150
+#include <Arduino.h>
+#include "Trekking.h"
 
 /*----|Public|---------------------------------------------------------------*/
 Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidController, SensorArray *pSensorArray):
@@ -64,7 +63,7 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 	targets(),
 	//obstacles(),
 	init_position(0, 0, 0),
-	encoder_stream(&Serial2),
+	//encoder_stream(&Serial2),
 
 	//Timers
 	mpu_timer(this, &Trekking::readMPU),
@@ -77,9 +76,8 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 	//Streams
 	operation_mode_switch = MANUAL_MODE;
 	command_stream = &Serial1; //bluetooth on Serial1; USB on Serial
-	log_stream = &Serial1; //bluetooth on Serial1; USB on Serial
-
-	log.setTarget(log_stream);
+	//log_stream = &Serial1; //bluetooth on Serial1; USB on Serial
+	log.setTarget(&Serial1);
 
 	Robot::setMinPWM(80, 80);
 
@@ -109,9 +107,9 @@ Trekking::Trekking(float safety_factor, DuoDriver* driver_pointer, PID pidContro
 
 	last_desired_refined_v = 0;
 //*/
-	kp = 1;
-	ki = 0;
-	kd = 0;
+	int kp = 1;
+	int ki = 0;
+	int kd = 0;
 
 	//first_mpu_sample = true;
 /*

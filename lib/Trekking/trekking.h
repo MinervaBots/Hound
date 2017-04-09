@@ -2,8 +2,8 @@
 #define TREKKING_H
 
 
-#include "Trekkingpins.h"
-#include "Trekkingmath.h"
+#include "TrekkingPins.h"
+#include "TrekkingMath.h"
 #include "Position.h"
 #include "DuoDriver.h"
 
@@ -77,20 +77,21 @@ private:
 	const int WHITE_VALUE;
 
 	//Motors
+/*
 	const byte MAX_MOTOR_PWM;
 	const byte MIN_MOTOR_PWM;
 
 	const int COMMAND_BAUD_RATE;
 	const int LOG_BAUD_RATE;
 	const int ENCODER_BAUD_RATE;
-
+//*/
 	const int MPU_UPDATE_RATE; //defines the rate (in Hz) at which the MPU updates the magnetometer data
 	const int MAG_UPDATE_RATE; // should be less than or equal to the MPU_UPDATE_RATE
 	const int MPU_LPF_RATE; // is the low pas filter rate and can be between 5 and 188Hz
 	const int  MPU_MAG_MIX_GYRO_AND_MAG;
 
 	const int LIGHT_DURATION;
-	const float PROXIMITY_RADIUS;
+	//const float PROXIMITY_RADIUS;
 
 	//const int READ_ENCODERS_TIME; //-
 	const int READ_MPU_TIME;
@@ -137,8 +138,8 @@ private:
 
 	//Holds witch is the serial stream to receive the commands
 	Stream *command_stream;
-	Stream *log_stream;
-	Stream *encoder_stream;
+	//Stream *log_stream;
+	//Stream *encoder_stream;
 
 	//Timers
 	TimerForMethods<Trekking> mpu_timer;
@@ -175,11 +176,11 @@ private:
 	unsigned long last_update_time;
 	//unsigned long last_update_time_2;
 	Position *q_desired;
-
+	/*
 	float kp;
 	float ki;
 	float kd;
-
+	//*/
 	bool is_testing_refinedSearch = false;
 	bool is_testing_openloop = false;
 	bool is_testing_search = false;
