@@ -20,6 +20,14 @@ SCL  -  A5
 //Include LCD and I2C library
 #include <Wire.h>
 
+#include <Servo.h>
+
+Servo servoX;
+Servo servoY;
+
+#define M_PI            3.1415
+#define LED_PIN         13
+
 //Declaring some global variables
 int gyro_x, gyro_y, gyro_z;
 long acc_x, acc_y, acc_z, acc_total_vector;
@@ -29,13 +37,16 @@ long loop_timer;
 float angle_pitch, angle_roll;
 boolean set_gyro_angles;
 float angle_roll_acc, angle_pitch_acc;
+boolean blinkState = false;
 
 
 
 void setup() {
   Wire.begin();                                                        //Start I2C as master
+  servoY.attach(9);
+  servoX.attach(10);
   Serial.begin(115200);                                                 //Use only for debugging
-  pinMode(13, OUTPUT);                                                 //Set output 13 (LED) as output
+  pinMode(LED_PIN, OUTPUT);                                                 //Set output 13 (LED) as output
   
   setup_mpu_6050_registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
 
@@ -54,7 +65,7 @@ void setup() {
   gyro_z_cal /= 2000;                                                  //Divide the gyro_z_cal variable by 2000 to get the avarage offset
 
   
-  digitalWrite(13, LOW);                                               //All done, turn the LED off
+  digitalWrite(LED_PIN, LOW);                                               //All done, turn the LED off
   
   loop_timer = micros();                                               //Reset the loop timer
 }
@@ -97,18 +108,22 @@ void loop(){
   }
   
   
- Serial.print("   Pitch = ");
- Serial.print(angle_pitch);
- Serial.print("   Roll = ");
- Serial.print(angle_roll);
- Serial.print("             Pitch_acc = ");
- Serial.print(angle_pitch_acc);
- Serial.print("   Roll_acc: ");
- Serial.print(angle_roll_acc);
- Serial.println();
-
-  while(micros() - loop_timer < 4000);                                 //Wait until the loop_timer reaches 4000us (250Hz) before starting the next loop
-  loop_timer = micros();                                               //Reset the loop timer
+ //Serial.print("   Pitch = ");
+ //Serial.print(angle_pitch);
+ //Serial.print("   Roll = ");
+ //Serial.print(angle_roll);
+ //Serial.print("             Pitch_acc = ");
+ //Serial.print(angle_pitch_acc);
+ //Serial.print("   Roll_acc: ");
+ //Serial.print(angle_roll_acc);
+ //Serial.println();
+ servoY.write(int(angle_pitch * -180/M_PI)+90);   // Rotation around Y
+ servoX.write(int(angle_roll * 180/M_PI)+90);   // Rotation around X
+ 
+ blinkState = !blinkState;                                     
+ digitalWrite(LED_PIN, blinkState);                                   // blink LED to indicate activity
+ while(micros() - loop_timer < 4000);                                 //Wait until the loop_timer reaches 4000us (250Hz) before starting the next loop
+ loop_timer = micros();                                               //Reset the loop timer
 }
 
 
