@@ -665,15 +665,17 @@ void Trekking::refinedSearch(float deltaTime)
 	else
 	{
 	// Temos algum cone sendo visto, roda o PID e segue na direção dele
-		float power = m_PidController.Run(error, deltaTime);
-		if(error == 0)
-		{
-			controlMotors(power, 0, 0, deltaTime);
-		}
-		else
-		{
-			controlMotors(0, power, 0, deltaTime);
-		}
+		float pidOutput = m_PidController.Run(error, deltaTime);
+		controlMotors(MAX_LINEAR_VELOCITY, pidOutput, 0, deltaTime); // velocidade angular = saída do PID; linear = cte
+		// float power = m_PidController.Run(error, deltaTime);
+		// if(error == 0)
+		// {
+		// 	controlMotors(power, 0, 0, deltaTime);
+		// }
+		// else
+		// {
+		// 	controlMotors(0, power, 0, deltaTime);
+		// }
 	}
 
 	// Print dos valores para teste
