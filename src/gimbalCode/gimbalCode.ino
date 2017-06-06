@@ -4,13 +4,13 @@
 /////////////////////////////////////////////////////////////////////
 Power (5V) is provided to the Arduino pro mini by the FTDI programmer
 
-Gyro - Arduino pro mini
+Gyro - Arduino Uno
 VCC  -  5V
 GND  -  GND
 SDA  -  A4
 SCL  -  A5
 
-LCD  - Arduino pro mini
+LCD  - Arduino Uno
 VCC  -  5V
 GND  -  GND
 SDA  -  A4
@@ -49,11 +49,12 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);                                                 //Set output 13 (LED) as output
   
   setup_mpu_6050_registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
+  delay(5000);
 
   digitalWrite(13, HIGH);                                              //Set digital output 13 high to indicate startup
 
   for (int cal_int = 0; cal_int < 2000 ; cal_int ++){                  //Run this code 2000 times
-    if(cal_int % 125 == 0)Serial.print(".");                           //Print a dot on the LCD every 125 readings
+    if(cal_int % 125 == 0)Serial.print('.');                  //Print a dot on the LCD every 125 readings
     read_mpu_6050_data();                                              //Read the raw acc and gyro data from the MPU-6050
     gyro_x_cal += gyro_x;                                              //Add the gyro x-axis offset to the gyro_x_cal variable
     gyro_y_cal += gyro_y;                                              //Add the gyro y-axis offset to the gyro_y_cal variable
@@ -94,12 +95,12 @@ void loop(){
   angle_roll_acc = asin((float)acc_x/acc_total_vector)* -57.296;       //Calculate the roll angle
   
   //Place the MPU-6050 spirit level and note the values in the following two lines for calibration
-  angle_pitch_acc -= 0.0;                                              //Accelerometer calibration value for pitch
-  angle_roll_acc -= 0.0;                                               //Accelerometer calibration value for roll
+  angle_pitch_acc -= 0.5;                                              //Accelerometer calibration value for pitch
+  angle_roll_acc += 1.5;                                               //Accelerometer calibration value for roll
 
   if(set_gyro_angles){                                                 //If the IMU is already started
-    angle_pitch = angle_pitch * 0.996 + angle_pitch_acc * 0.004;     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
-    angle_roll = angle_roll * 0.996 + angle_roll_acc * 0.004;        //Correct the drift of the gyro roll angle with the accelerometer roll angle
+    angle_pitch = angle_pitch * 0.9996 + angle_pitch_acc * 0.0004;     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
+    angle_roll = angle_roll * 0.9996 + angle_roll_acc * 0.0004;        //Correct the drift of the gyro roll angle with the accelerometer roll angle
   }
   else{                                                                //At first start
     angle_pitch = angle_pitch_acc;                                     //Set the gyro pitch angle equal to the accelerometer pitch angle 
@@ -108,15 +109,15 @@ void loop(){
   }
   
   
- //Serial.print("   Pitch = ");
- //Serial.print(angle_pitch);
- //Serial.print("   Roll = ");
- //Serial.print(angle_roll);
- //Serial.print("             Pitch_acc = ");
- //Serial.print(angle_pitch_acc);
- //Serial.print("   Roll_acc: ");
- //Serial.print(angle_roll_acc);
- //Serial.println();
+ Serial.print("   Pitch = ");
+ Serial.print(angle_pitch);
+ Serial.print("   Roll = ");
+ Serial.print(angle_roll);
+ Serial.print("             Pitch_acc = ");
+ Serial.print(angle_pitch_acc);
+ Serial.print("   Roll_acc: ");
+ Serial.print(angle_roll_acc);
+ Serial.println();
  servoY.write(int(angle_pitch * -180/M_PI)+90);   // Rotation around Y
  servoX.write(int(angle_roll * 180/M_PI)+90);   // Rotation around X
  
